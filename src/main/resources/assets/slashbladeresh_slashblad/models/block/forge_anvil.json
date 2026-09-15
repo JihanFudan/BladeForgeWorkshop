@@ -1,0 +1,312 @@
+{
+  "credit": "SlashBlade Resharped companion",
+  "parent": "minecraft:block/block",
+  "ambientocclusion": true,
+  "textures": {
+    "texture": "slashbladeresh_slashblad:block/forge_anvil",
+    "particle": "slashbladeresh_slashblad:block/forge_anvil"
+  },
+  "elements": [
+    {
+      "name": "wooden_footing",
+      "from": [
+        1,
+        0,
+        1
+      ],
+      "to": [
+        15,
+        5,
+        15
+      ],
+      "faces": {
+        "north": {
+          "texture": "#texture"
+        },
+        "south": {
+          "texture": "#texture"
+        },
+        "east": {
+          "texture": "#texture"
+        },
+        "west": {
+          "texture": "#texture"
+        },
+        "up": {
+          "texture": "#texture"
+        },
+        "down": {
+          "texture": "#texture",
+          "cullface": "down"
+        }
+      }
+    },
+    {
+      "name": "left_foot",
+      "from": [
+        0,
+        1,
+        3
+      ],
+      "to": [
+        4,
+        5,
+        13
+      ],
+      "faces": {
+        "north": {
+          "texture": "#texture"
+        },
+        "south": {
+          "texture": "#texture"
+        },
+        "east": {
+          "texture": "#texture"
+        },
+        "west": {
+          "texture": "#texture",
+          "cullface": "west"
+        },
+        "up": {
+          "texture": "#texture"
+        },
+        "down": {
+          "texture": "#texture"
+        }
+      }
+    },
+    {
+      "name": "right_foot",
+      "from": [
+        12,
+        1,
+        3
+      ],
+      "to": [
+        16,
+        5,
+        13
+      ],
+      "faces": {
+        "north": {
+          "texture": "#texture"
+        },
+        "south": {
+          "texture": "#texture"
+        },
+        "east": {
+          "texture": "#texture",
+          "cullface": "east"
+        },
+        "west": {
+          "texture": "#texture"
+        },
+        "up": {
+          "texture": "#texture"
+        },
+        "down": {
+          "texture": "#texture"
+        }
+      }
+    },
+    {
+      "name": "iron_waist",
+      "from": [
+        4,
+        4,
+        4
+      ],
+      "to": [
+        12,
+        10,
+        12
+      ],
+      "faces": {
+        "north": {
+          "texture": "#texture"
+        },
+        "south": {
+          "texture": "#texture"
+        },
+        "east": {
+          "texture": "#texture"
+        },
+        "west": {
+          "texture": "#texture"
+        },
+        "up": {
+          "texture": "#texture"
+        },
+        "down": {
+          "texture": "#texture"
+        }
+      }
+    },
+    {
+      "name": "iron_shoulder",
+      "from": [
+        2,
+        8,
+        3
+      ],
+      "to": [
+        14,
+        12,
+        13
+      ],
+      "faces": {
+        "north": {
+          "texture": "#texture"
+        },
+        "south": {
+          "texture": "#texture"
+        },
+        "east": {
+          "texture": "#texture"
+        },
+        "west": {
+          "texture": "#texture"
+        },
+        "up": {
+          "texture": "#texture"
+        },
+        "down": {
+          "texture": "#texture"
+        }
+      }
+    },
+    {
+      "name": "iron_face",
+      "from": [
+        1,
+        10.5,
+        3
+      ],
+      "to": [
+        15,
+        13.5,
+        13
+      ],
+      "faces": {
+        "north": {
+          "texture": "#texture"
+        },
+        "south": {
+          "texture": "#texture"
+        },
+        "east": {
+          "texture": "#texture"
+        },
+        "west": {
+          "texture": "#texture"
+        },
+        "up": {
+          "texture": "#texture"
+        },
+        "down": {
+          "texture": "#texture"
+        }
+      }
+    },
+    {
+      "name": "horn_root",
+      "from": [
+        4,
+        10.8,
+        12
+      ],
+      "to": [
+        12,
+        13,
+        15
+      ],
+      "faces": {
+        "north": {
+          "texture": "#texture"
+        },
+        "south": {
+          "texture": "#texture"
+        },
+        "east": {
+          "texture": "#texture"
+        },
+        "west": {
+          "texture": "#texture"
+        },
+        "up": {
+          "texture": "#texture"
+        },
+        "down": {
+          "texture": "#texture"
+        }
+      }
+    },
+    {
+      "name": "horn_tip",
+      "from": [
+        6,
+        11.1,
+        15
+      ],
+      "to": [
+        10,
+        12.7,
+        16
+      ],
+      "faces": {
+        "north": {
+          "texture": "#texture"
+        },
+        "south": {
+          "texture": "#texture",
+          "cullface": "south"
+        },
+        "east": {
+          "texture": "#texture"
+        },
+        "west": {
+          "texture": "#texture"
+        },
+        "up": {
+          "texture": "#texture"
+        },
+        "down": {
+          "texture": "#texture"
+        }
+      }
+    },
+    {
+      "name": "front_hardie_block",
+      "from": [
+        6,
+        10.8,
+        4
+      ],
+      "to": [
+        10,
+        13.7,
+        7
+      ],
+      "faces": {
+        "north": {
+          "texture": "#texture"
+        },
+        "south": {
+          "texture": "#texture"
+        },
+        "east": {
+          "texture": "#texture"
+        },
+        "west": {
+          "texture": "#texture"
+        },
+        "up": {
+          "texture": "#texture"
+        },
+        "down": {
+          "texture": "#texture"
+        }
+      }
+    }
+  ]
+}

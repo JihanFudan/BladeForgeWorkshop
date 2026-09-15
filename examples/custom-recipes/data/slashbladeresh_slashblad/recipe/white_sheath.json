@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "equipment",
+  "ingredients": [
+    {"item": "slashblade:slashblade_wood"},
+    {"item": "slashblade:proudsoul_ingot"},
+    {"item": "slashblade:proudsoul_ingot"},
+    {"item": "minecraft:gold_ingot"},
+    {"item": "slashbladeresh_slashblad:quenched_blade"},
+    [
+      {"item": "slashbladeresh_slashblad:tsuba_pure_iron"},
+      {"item": "slashbladeresh_slashblad:tsuba_pure_gold"}
+    ]
+  ],
+  "result": {"id": "slashblade:slashblade_white", "count": 1}
+}

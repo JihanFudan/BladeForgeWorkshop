@@ -1,0 +1,6 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": ["III", " I ", " S "],
+  "key": {"I": {"item": "minecraft:iron_ingot"}, "S": {"item": "minecraft:stick"}},
+  "result": {"id": "slashbladeresh_slashblad:forging_hammer", "count": 1}
+}

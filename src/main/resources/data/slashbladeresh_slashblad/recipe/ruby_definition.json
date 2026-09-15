@@ -1,0 +1,8 @@
+{
+  "type": "slashblade:shaped_blade",
+  "blade": "slashblade:ruby",
+  "category": "equipment",
+  "pattern": ["X"],
+  "key": {"X": {"item": "minecraft:barrier"}},
+  "result": {"id": "slashblade:slashblade", "count": 1}
+}

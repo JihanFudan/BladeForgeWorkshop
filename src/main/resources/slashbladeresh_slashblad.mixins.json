@@ -1,0 +1,19 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "cn.blockforge.generated.slashbladereshslashblad.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "RecipeManagerMixin",
+    "RefinementDamageMixin"
+  ],
+  "client": [
+    "InspectArmHideMixin",
+    "UltimateBladeLayerMixin",
+    "UltimateMotionMixin",
+    "UltimatePlayerPoseMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

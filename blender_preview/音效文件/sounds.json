@@ -1,0 +1,80 @@
+{
+  "draw": {
+    "sounds": [
+      "slashbladeresh_slashblad:draw"
+    ],
+    "subtitle": "subtitle.slashbladeresh_slashblad.draw"
+  },
+  "quickly_draw": {
+    "sounds": [
+      "slashbladeresh_slashblad:quickly_draw"
+    ],
+    "subtitle": "subtitle.slashbladeresh_slashblad.quickly_draw"
+  },
+  "spin": {
+    "sounds": [
+      "slashbladeresh_slashblad:spin"
+    ],
+    "subtitle": "subtitle.slashbladeresh_slashblad.spin"
+  },
+  "shed_sheath": {
+    "sounds": [
+      "slashbladeresh_slashblad:shed_sheath"
+    ],
+    "subtitle": "subtitle.slashbladeresh_slashblad.shed_sheath"
+  },
+  "hold": {
+    "sounds": [
+      "slashbladeresh_slashblad:hold"
+    ],
+    "subtitle": "subtitle.slashbladeresh_slashblad.hold"
+  },
+  "draw_wood": {
+    "sounds": [
+      "slashbladeresh_slashblad:draw_wood"
+    ],
+    "subtitle": "subtitle.slashbladeresh_slashblad.draw"
+  },
+  "knock_wood": {
+    "sounds": [
+      "slashbladeresh_slashblad:knock_wood"
+    ],
+    "subtitle": "subtitle.slashbladeresh_slashblad.shed_sheath"
+  },
+  "spin_wood": {
+    "sounds": [
+      "slashbladeresh_slashblad:spin_wood"
+    ],
+    "subtitle": "subtitle.slashbladeresh_slashblad.spin"
+  },
+  "hold_wood": {
+    "sounds": [
+      "slashbladeresh_slashblad:hold_wood"
+    ],
+    "subtitle": "subtitle.slashbladeresh_slashblad.hold"
+  },
+  "draw_bamboo": {
+    "sounds": [
+      "slashbladeresh_slashblad:draw_bamboo"
+    ],
+    "subtitle": "subtitle.slashbladeresh_slashblad.draw"
+  },
+  "knock_bamboo": {
+    "sounds": [
+      "slashbladeresh_slashblad:knock_bamboo"
+    ],
+    "subtitle": "subtitle.slashbladeresh_slashblad.shed_sheath"
+  },
+  "spin_bamboo": {
+    "sounds": [
+      "slashbladeresh_slashblad:spin_bamboo"
+    ],
+    "subtitle": "subtitle.slashbladeresh_slashblad.spin"
+  },
+  "hold_bamboo": {
+    "sounds": [
+      "slashbladeresh_slashblad:hold_bamboo"
+    ],
+    "subtitle": "subtitle.slashbladeresh_slashblad.hold"
+  }
+}

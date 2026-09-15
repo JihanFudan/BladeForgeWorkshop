@@ -1,0 +1,147 @@
+================================================================
+  检视动画音效修改教程（零基础）
+================================================================
+
+【音效文件已整理在本文件夹】
+  本文件夹：blender_preview\音效文件\
+  每个 .ogg 就是一段声音，13 个 + 1 个配置文件：
+
+  金属刀（木刀/竹刀外的全部，包括阎魔）：
+    draw.ogg          拔刀（金属出鞘）
+    quickly_draw.ogg  快速拔刀（短促）
+    shed_sheath.ogg   出鞘/刀鞘摩擦
+    hold.ogg          握鞘待机
+    spin.ogg          回旋挥刀风声
+
+  木刀（wood）：
+    draw_wood.ogg / knock_wood.ogg / spin_wood.ogg / hold_wood.ogg
+
+  竹刀（bamboo）：
+    draw_bamboo.ogg / knock_bamboo.ogg / spin_bamboo.ogg / hold_bamboo.ogg
+
+  sounds.json        声音注册表（一般不用动）
+
+  原始位置（改这里才生效）：
+  C:\Users\JihanFudan\Desktop\mod\src\main\resources\assets\
+      slashbladeresh_slashblad\sounds\
+
+----------------------------------------------------------------
+一、想换声音素材（最简单）
+----------------------------------------------------------------
+1. 准备你的音频（mp3/wav 都行）
+2. 转成 OGG 格式：
+   - 用 Audacity（免费）：文件 → 导出 → 导出为 OGG
+   - 或格式工厂/在线转换，选 OGG Vorbis
+   - 建议：44.1kHz、16bit、单声道，时长 0.2~3 秒
+3. 改文件名成要替换的名字（比如 draw.ogg），
+   复制到【原始位置】覆盖同名文件
+   ★ 重要：改【原始位置】的文件，不是改本文件夹的副本！
+4. 重新构建（见文末）
+
+----------------------------------------------------------------
+二、改"哪个动作在哪一帧播什么音效"
+----------------------------------------------------------------
+文件：
+  C:\Users\JihanFudan\Desktop\mod\src\main\java\cn\blockforge\
+      generated\slashbladereshslashblad\InspectComboStates.java
+  第 34~35 行，长这样：
+
+    private static final Object[] REF_CUES = {
+            26, Cue.HOLD, 32, Cue.SHED, 34, Cue.DRAW,
+            82, Cue.SLASH, 119, Cue.SPIN, 185, Cue.SHEATHE};
+
+  ★ 规则：一对一对看——【帧号, 音效类型, 帧号, 音效类型, ...】
+    帧号 = 动画的第几帧（0~202，和 Blender 里看到的帧号一致）
+    音效类型（Cue）可选：
+      HOLD    握鞘待机声
+      SHED    出鞘摩擦声
+      NUDGE   阎魔顶出声
+      DRAW    拔刀声
+      SLASH   挥砍声
+      SPIN    回旋声
+      SHEATHE 收刀入鞘声
+
+  当前音效时间轴（动画对应时刻）：
+    帧 26   HOLD     握鞘
+    帧 32   SHED     出鞘
+    帧 34   DRAW     拔刀
+    帧 82   SLASH    挥砍
+    帧 119  SPIN     回旋
+    帧 185  SHEATHE  收鞘
+
+  举例 1：你觉得"挥砍声太晚了"，想让它提前到 60 帧：
+    把 82, Cue.SLASH 改成 60, Cue.SLASH
+
+  举例 2：想"拔刀时再加一声握鞘"：
+    在数组里加一对：34, Cue.HOLD（放在 34, Cue.DRAW 旁边）
+
+  举例 3：想删掉收刀声：
+    删掉 185, Cue.SHEATHE 这对
+
+  注意：帧号按从小到大排，改完保存，重新构建。
+
+----------------------------------------------------------------
+三、改音量 / 音调
+----------------------------------------------------------------
+文件：
+  C:\Users\JihanFudan\Desktop\mod\src\main\java\cn\blockforge\
+      generated\slashbladereshslashblad\InspectSounds.java
+
+  每个播放函数里都有：
+    play(entity, 音效, 音量, 音调);
+    音量：0.5 = 小声，1.0 = 正常，2.0 = 大声
+    音调：1.0 = 原速，0.5 = 低八度，2.0 = 高八度
+
+  例：阎魔拔出声音想更沉 → 找 playDraw 里的
+      play(entity, DRAW.get(), 1.0F, 1.0F);
+      改成 play(entity, DRAW.get(), 1.0F, 0.7F);
+
+  另外每种刀有基础音高（文件里 variantPitch 方法）：
+      阎魔 0.55（最低沉）  村正 0.64  黑狐 0.78  木刀 0.82
+      白狐 1.12  竹刀 1.28（最尖）
+  想让某把刀整体更高/更低，改这个数字即可。
+
+----------------------------------------------------------------
+四、想让阎魔用独立的音效（不和别的刀共用）
+----------------------------------------------------------------
+目前阎魔和金属刀共用 draw/spin 等音效。
+想给阎魔单独一套：
+1. 把你的音效转 OGG，命名为如 enma_draw.ogg，放到【原始位置】
+2. 打开 sounds.json，在最后一项后加：
+     "enma_draw": { "sounds": ["slashbladeresh_slashblad:enma_draw"] },
+   （注意前面各项结尾的逗号）
+3. 打开 InspectSounds.java：
+   - 在最上面音效列表加一行：
+       public static final Supplier<SoundEvent> ENMA_DRAW = register("enma_draw");
+   - 在 playDraw() 里加判断：如果是阎魔就用 ENMA_DRAW
+     照着下面抄（找 currentVariant(entity) == Variant.YAMATO）：
+       if (InspectComboStates.currentVariant(entity) == Variant.YAMATO) {
+           play(entity, ENMA_DRAW.get(), 1.0F, 1.0F);
+           return;
+       }
+4. 重新构建
+
+----------------------------------------------------------------
+五、重新构建（构建完才是新音效）
+----------------------------------------------------------------
+打开 PowerShell，一次粘贴这三行：
+
+  cd C:\Users\JihanFudan\Desktop\mod
+  $env:JAVA_HOME="C:\Users\JihanFudan\Desktop\buildtools\jdk21\jdk-21.0.12.1+1"
+  & "C:\Users\JihanFudan\Desktop\buildtools\gradle814\gradle-8.14\bin\gradle.bat" build --no-daemon --console=plain
+
+看到 BUILD SUCCESSFUL 后，新 jar 在：
+  C:\Users\JihanFudan\Desktop\mod\build\libs\
+  （文件名里的版本号 = gradle.properties 里的 release_version）
+
+----------------------------------------------------------------
+小提示
+----------------------------------------------------------------
+· 音效对不上的排查顺序：
+  1) 播放时机错 → 改 InspectComboStates.java 的帧号
+  2) 声音不对（音色）→ 换 .ogg 文件
+  3) 音量/音调不对 → 改 InspectSounds.java 的 play 参数
+· 改 Java 文件后一定要重新构建才生效；
+  只换 .ogg 也一样要重新构建。
+· 想还原？改前把原文件备份一份到别处即可。
+================================================================

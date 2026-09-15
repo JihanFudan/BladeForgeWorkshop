@@ -1,0 +1,10 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": ["PFP", "PCP", "PPP"],
+  "key": {
+    "P": {"tag": "minecraft:planks"},
+    "F": {"item": "minecraft:flint"},
+    "C": {"item": "minecraft:crafting_table"}
+  },
+  "result": {"id": "slashbladeresh_slashblad:blade_workbench", "count": 1}
+}

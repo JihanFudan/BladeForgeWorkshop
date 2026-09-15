@@ -1,0 +1,34 @@
+plugins {
+    id 'java-library'
+    id 'net.neoforged.moddev' version '2.0.143'
+}
+repositories {
+    maven { url = 'https://maven.blamejared.com' }
+}
+dependencies {
+    compileOnly "mezz.jei:jei-1.21.1-common-api:19.21.0.247"
+    compileOnly "mezz.jei:jei-1.21.1-neoforge-api:19.21.0.247"
+    // 拔刀剑：重锋 1.21.1（前置模组，只在编译期使用，不打进成品）：
+    // 检视改用它的 ComboState 连招管线注册，需要真实签名。
+    compileOnly files('libs/SlashBladeResharped-2.0.5-1.21.1.jar')
+}
+// 本次正式发布的版本号，供成品文件名与模组信息共同使用。
+version = release_version
+group = mod_group_id
+base { archivesName = 'BladeForgeWorkshop' }
+java.toolchain.languageVersion = JavaLanguageVersion.of(21)
+neoForge {
+    version = project.neo_version
+    runs { client { client() }; server { server(); programArgument '--nogui' } }
+    mods { "${mod_id}" { sourceSet(sourceSets.main) } }
+}
+tasks.withType(JavaCompile).configureEach { options.encoding = 'UTF-8' }
+processResources {
+    def props = [minecraft_version: minecraft_version, minecraft_version_range: minecraft_version_range,
+                 neo_version: neo_version, loader_version_range: loader_version_range,
+                 mod_id: mod_id, mod_name: mod_name, mod_license: mod_license, mod_version: project.version.toString()]
+    inputs.properties props
+    filteringCharset = 'UTF-8'
+    filesMatching('META-INF/neoforge.mods.toml') { expand props }
+    exclude '**/model_previews/**'
+}

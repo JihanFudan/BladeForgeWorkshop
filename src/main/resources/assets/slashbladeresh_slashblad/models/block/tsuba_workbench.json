@@ -1,0 +1,481 @@
+{
+  "credit": "SlashBlade Resharped companion",
+  "parent": "minecraft:block/block",
+  "ambientocclusion": true,
+  "textures": {
+    "texture": "slashbladeresh_slashblad:block/tsuba_workbench",
+    "particle": "slashbladeresh_slashblad:block/tsuba_workbench"
+  },
+  "elements": [
+    {
+      "name": "body",
+      "from": [
+        1,
+        1,
+        1
+      ],
+      "to": [
+        15,
+        8,
+        15
+      ],
+      "faces": {
+        "north": {
+          "texture": "#texture"
+        },
+        "south": {
+          "texture": "#texture"
+        },
+        "east": {
+          "texture": "#texture"
+        },
+        "west": {
+          "texture": "#texture"
+        },
+        "up": {
+          "texture": "#texture"
+        },
+        "down": {
+          "texture": "#texture"
+        }
+      }
+    },
+    {
+      "name": "front_left_leg",
+      "from": [
+        1,
+        0,
+        1
+      ],
+      "to": [
+        5,
+        9,
+        5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#texture"
+        },
+        "south": {
+          "texture": "#texture"
+        },
+        "east": {
+          "texture": "#texture"
+        },
+        "west": {
+          "texture": "#texture"
+        },
+        "up": {
+          "texture": "#texture"
+        },
+        "down": {
+          "texture": "#texture",
+          "cullface": "down"
+        }
+      }
+    },
+    {
+      "name": "front_right_leg",
+      "from": [
+        11,
+        0,
+        1
+      ],
+      "to": [
+        15,
+        9,
+        5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#texture"
+        },
+        "south": {
+          "texture": "#texture"
+        },
+        "east": {
+          "texture": "#texture"
+        },
+        "west": {
+          "texture": "#texture"
+        },
+        "up": {
+          "texture": "#texture"
+        },
+        "down": {
+          "texture": "#texture",
+          "cullface": "down"
+        }
+      }
+    },
+    {
+      "name": "back_left_leg",
+      "from": [
+        1,
+        0,
+        11
+      ],
+      "to": [
+        5,
+        9,
+        15
+      ],
+      "faces": {
+        "north": {
+          "texture": "#texture"
+        },
+        "south": {
+          "texture": "#texture"
+        },
+        "east": {
+          "texture": "#texture"
+        },
+        "west": {
+          "texture": "#texture"
+        },
+        "up": {
+          "texture": "#texture"
+        },
+        "down": {
+          "texture": "#texture",
+          "cullface": "down"
+        }
+      }
+    },
+    {
+      "name": "back_right_leg",
+      "from": [
+        11,
+        0,
+        11
+      ],
+      "to": [
+        15,
+        9,
+        15
+      ],
+      "faces": {
+        "north": {
+          "texture": "#texture"
+        },
+        "south": {
+          "texture": "#texture"
+        },
+        "east": {
+          "texture": "#texture"
+        },
+        "west": {
+          "texture": "#texture"
+        },
+        "up": {
+          "texture": "#texture"
+        },
+        "down": {
+          "texture": "#texture",
+          "cullface": "down"
+        }
+      }
+    },
+    {
+      "name": "thick_bamboo_rim",
+      "from": [
+        0,
+        8,
+        0
+      ],
+      "to": [
+        16,
+        11,
+        16
+      ],
+      "faces": {
+        "north": {
+          "texture": "#texture",
+          "cullface": "north"
+        },
+        "south": {
+          "texture": "#texture",
+          "cullface": "south"
+        },
+        "east": {
+          "texture": "#texture",
+          "cullface": "east"
+        },
+        "west": {
+          "texture": "#texture",
+          "cullface": "west"
+        },
+        "up": {
+          "texture": "#texture"
+        },
+        "down": {
+          "texture": "#texture"
+        }
+      }
+    },
+    {
+      "name": "steel_work_surface",
+      "from": [
+        2,
+        10.7,
+        2
+      ],
+      "to": [
+        14,
+        11.2,
+        14
+      ],
+      "faces": {
+        "north": {
+          "texture": "#texture"
+        },
+        "south": {
+          "texture": "#texture"
+        },
+        "east": {
+          "texture": "#texture"
+        },
+        "west": {
+          "texture": "#texture"
+        },
+        "up": {
+          "texture": "#texture"
+        },
+        "down": {
+          "texture": "#texture"
+        }
+      }
+    },
+    {
+      "name": "front_clamp_rail",
+      "from": [
+        3,
+        10.8,
+        4
+      ],
+      "to": [
+        13,
+        12.2,
+        6
+      ],
+      "faces": {
+        "north": {
+          "texture": "#texture"
+        },
+        "south": {
+          "texture": "#texture"
+        },
+        "east": {
+          "texture": "#texture"
+        },
+        "west": {
+          "texture": "#texture"
+        },
+        "up": {
+          "texture": "#texture"
+        },
+        "down": {
+          "texture": "#texture"
+        }
+      }
+    },
+    {
+      "name": "back_clamp_rail",
+      "from": [
+        3,
+        10.8,
+        10
+      ],
+      "to": [
+        13,
+        12.2,
+        12
+      ],
+      "faces": {
+        "north": {
+          "texture": "#texture"
+        },
+        "south": {
+          "texture": "#texture"
+        },
+        "east": {
+          "texture": "#texture"
+        },
+        "west": {
+          "texture": "#texture"
+        },
+        "up": {
+          "texture": "#texture"
+        },
+        "down": {
+          "texture": "#texture"
+        }
+      }
+    },
+    {
+      "name": "front_left_post",
+      "from": [
+        2,
+        10.8,
+        2
+      ],
+      "to": [
+        4.5,
+        15,
+        4.5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#texture"
+        },
+        "south": {
+          "texture": "#texture"
+        },
+        "east": {
+          "texture": "#texture"
+        },
+        "west": {
+          "texture": "#texture"
+        },
+        "up": {
+          "texture": "#texture"
+        },
+        "down": {
+          "texture": "#texture"
+        }
+      }
+    },
+    {
+      "name": "front_right_post",
+      "from": [
+        11.5,
+        10.8,
+        2
+      ],
+      "to": [
+        14,
+        15,
+        4.5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#texture"
+        },
+        "south": {
+          "texture": "#texture"
+        },
+        "east": {
+          "texture": "#texture"
+        },
+        "west": {
+          "texture": "#texture"
+        },
+        "up": {
+          "texture": "#texture"
+        },
+        "down": {
+          "texture": "#texture"
+        }
+      }
+    },
+    {
+      "name": "back_left_post",
+      "from": [
+        2,
+        10.8,
+        11.5
+      ],
+      "to": [
+        4.5,
+        15,
+        14
+      ],
+      "faces": {
+        "north": {
+          "texture": "#texture"
+        },
+        "south": {
+          "texture": "#texture"
+        },
+        "east": {
+          "texture": "#texture"
+        },
+        "west": {
+          "texture": "#texture"
+        },
+        "up": {
+          "texture": "#texture"
+        },
+        "down": {
+          "texture": "#texture"
+        }
+      }
+    },
+    {
+      "name": "back_right_post",
+      "from": [
+        11.5,
+        10.8,
+        11.5
+      ],
+      "to": [
+        14,
+        15,
+        14
+      ],
+      "faces": {
+        "north": {
+          "texture": "#texture"
+        },
+        "south": {
+          "texture": "#texture"
+        },
+        "east": {
+          "texture": "#texture"
+        },
+        "west": {
+          "texture": "#texture"
+        },
+        "up": {
+          "texture": "#texture"
+        },
+        "down": {
+          "texture": "#texture"
+        }
+      }
+    },
+    {
+      "name": "central_tsuba_pin",
+      "from": [
+        6.5,
+        11.1,
+        6.5
+      ],
+      "to": [
+        9.5,
+        14,
+        9.5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#texture"
+        },
+        "south": {
+          "texture": "#texture"
+        },
+        "east": {
+          "texture": "#texture"
+        },
+        "west": {
+          "texture": "#texture"
+        },
+        "up": {
+          "texture": "#texture"
+        },
+        "down": {
+          "texture": "#texture"
+        }
+      }
+    }
+  ]
+}

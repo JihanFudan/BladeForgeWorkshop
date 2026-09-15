@@ -1,0 +1,42 @@
+modLoader="javafml"
+loaderVersion="${loader_version_range}"
+license="${mod_license}"
+[[mods]]
+modId="${mod_id}"
+version="${mod_version}"
+displayName="BladeForgeWorkshop"
+authors="jihanfudan"
+description='''锻刀工坊是《拔刀剑：重锋》的锻刀附属模组，适用于 Minecraft 1.21.1 + NeoForge，需要同时安装 SlashBlade Resharped。
+
+制作方式与原版拔刀剑略有不同：使用刀镡制作台、烧铁炉、锻造铁砧和刀剑制作台，完成配件加工、铁钢配比、锻打、覆土淬火与成刀组装。
+
+所有制刀配方均使用成品刀条与纯铁或纯金刀镡，木刀和竹刀还需对应木竹刀条、刀柄与刀鞘。刀剑制作台自动接管本体及附属的工作台、锻造台拔刀剑配方，保留原材料和原刀条件。右键逐件放入材料，锻造锤右键完成；升级保留杀敌数、耀魂数、精炼数与基础攻击养成。支持通过数据包增加或覆盖配方。
+
+锻造铁砧可吸收耀魂碎片、耀魂铁锭和耀魂宝珠，增加精炼、耀魂、杀敌数并恢复耐久。精炼伤害和耀魂锻打攻击采用递减增长：精炼越高，单次伤害增益越少。铁钢配比与刀镡材质决定制刀时的攻击和耐久上限修正。
+
+进入存档即可获得《锻刀工坊游玩手册》，按步骤学习当前全部制作流程。安装 JEI 可查看完整的合成方法、材料数量及工位加工说明；默认指向物品按 R 查询制作，按 U 查询用途。
+
+致谢：本模组的检视功能改编自 猫叩MewKooo 制作的 SlashBlade Inspect 检视模组，在此向原作者与贡献者致以诚挚的谢意。
+
+主页：https://www.curseforge.com/minecraft/mc-mods/blade-forge-workshop/files/all?page=1&pageSize=20&showAlphaFiles=hide'''
+[[mixins]]
+config="slashbladeresh_slashblad.mixins.json"
+
+[[dependencies.mod_id]]
+modId="neoforge"
+type="required"
+versionRange="[${neo_version},)"
+ordering="NONE"
+side="BOTH"
+[[dependencies.mod_id]]
+modId="minecraft"
+type="required"
+versionRange="${minecraft_version_range}"
+ordering="NONE"
+side="BOTH"
+[[dependencies.mod_id]]
+modId="slashblade"
+type="required"
+versionRange="[1.21.1,)"
+ordering="AFTER"
+side="BOTH"

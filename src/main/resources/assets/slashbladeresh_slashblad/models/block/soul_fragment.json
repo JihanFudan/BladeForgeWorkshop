@@ -1,0 +1,388 @@
+{
+  "parent": "minecraft:block/block",
+  "ambientocclusion": false,
+  "textures": {
+    "material": "slashbladeresh_slashblad:block/soul_sphere",
+    "particle": "slashbladeresh_slashblad:block/soul_sphere"
+  },
+  "elements": [
+    {
+      "name": "heel",
+      "from": [
+        5.0,
+        0.0,
+        7.0
+      ],
+      "to": [
+        9.0,
+        1.0,
+        10.0
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            7.0,
+            11.0,
+            11.0,
+            12.0
+          ],
+          "texture": "#material"
+        },
+        "east": {
+          "uv": [
+            6.0,
+            11.0,
+            9.0,
+            12.0
+          ],
+          "texture": "#material"
+        },
+        "south": {
+          "uv": [
+            5.0,
+            11.0,
+            9.0,
+            12.0
+          ],
+          "texture": "#material"
+        },
+        "west": {
+          "uv": [
+            7.0,
+            11.0,
+            10.0,
+            12.0
+          ],
+          "texture": "#material"
+        },
+        "down": {
+          "uv": [
+            5.0,
+            6.0,
+            9.0,
+            9.0
+          ],
+          "texture": "#material"
+        }
+      }
+    },
+    {
+      "name": "body",
+      "from": [
+        4.0,
+        1.0,
+        6.0
+      ],
+      "to": [
+        10.0,
+        2.0,
+        10.0
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            6.0,
+            10.0,
+            12.0,
+            11.0
+          ],
+          "texture": "#material"
+        },
+        "east": {
+          "uv": [
+            6.0,
+            10.0,
+            10.0,
+            11.0
+          ],
+          "texture": "#material"
+        },
+        "south": {
+          "uv": [
+            4.0,
+            10.0,
+            10.0,
+            11.0
+          ],
+          "texture": "#material"
+        },
+        "west": {
+          "uv": [
+            6.0,
+            10.0,
+            10.0,
+            11.0
+          ],
+          "texture": "#material"
+        },
+        "up": {
+          "uv": [
+            4.0,
+            6.0,
+            10.0,
+            10.0
+          ],
+          "texture": "#material"
+        },
+        "down": {
+          "uv": [
+            4.0,
+            6.0,
+            10.0,
+            10.0
+          ],
+          "texture": "#material"
+        }
+      }
+    },
+    {
+      "name": "fracture",
+      "from": [
+        5.0,
+        2.0,
+        6.0
+      ],
+      "to": [
+        11.0,
+        3.0,
+        9.0
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            5.0,
+            9.0,
+            11.0,
+            10.0
+          ],
+          "texture": "#material"
+        },
+        "east": {
+          "uv": [
+            7.0,
+            9.0,
+            10.0,
+            10.0
+          ],
+          "texture": "#material"
+        },
+        "south": {
+          "uv": [
+            5.0,
+            9.0,
+            11.0,
+            10.0
+          ],
+          "texture": "#material"
+        },
+        "west": {
+          "uv": [
+            6.0,
+            9.0,
+            9.0,
+            10.0
+          ],
+          "texture": "#material"
+        },
+        "up": {
+          "uv": [
+            5.0,
+            6.0,
+            11.0,
+            9.0
+          ],
+          "texture": "#material"
+        },
+        "down": {
+          "uv": [
+            5.0,
+            7.0,
+            11.0,
+            10.0
+          ],
+          "texture": "#material"
+        }
+      }
+    },
+    {
+      "name": "ridge",
+      "from": [
+        6.0,
+        3.0,
+        6.0
+      ],
+      "to": [
+        10.0,
+        4.0,
+        8.0
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            6.0,
+            8.0,
+            10.0,
+            9.0
+          ],
+          "texture": "#material"
+        },
+        "east": {
+          "uv": [
+            8.0,
+            8.0,
+            10.0,
+            9.0
+          ],
+          "texture": "#material"
+        },
+        "south": {
+          "uv": [
+            6.0,
+            8.0,
+            10.0,
+            9.0
+          ],
+          "texture": "#material"
+        },
+        "west": {
+          "uv": [
+            6.0,
+            8.0,
+            8.0,
+            9.0
+          ],
+          "texture": "#material"
+        },
+        "up": {
+          "uv": [
+            6.0,
+            6.0,
+            10.0,
+            8.0
+          ],
+          "texture": "#material"
+        }
+      }
+    },
+    {
+      "name": "point",
+      "from": [
+        8.0,
+        4.0,
+        6.0
+      ],
+      "to": [
+        10.0,
+        5.0,
+        7.0
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            6.0,
+            7.0,
+            8.0,
+            8.0
+          ],
+          "texture": "#material"
+        },
+        "east": {
+          "uv": [
+            9.0,
+            7.0,
+            10.0,
+            8.0
+          ],
+          "texture": "#material"
+        },
+        "south": {
+          "uv": [
+            8.0,
+            7.0,
+            10.0,
+            8.0
+          ],
+          "texture": "#material"
+        },
+        "west": {
+          "uv": [
+            6.0,
+            7.0,
+            7.0,
+            8.0
+          ],
+          "texture": "#material"
+        },
+        "up": {
+          "uv": [
+            8.0,
+            6.0,
+            10.0,
+            7.0
+          ],
+          "texture": "#material"
+        }
+      }
+    },
+    {
+      "name": "broken_edge",
+      "from": [
+        3.0,
+        1.0,
+        8.0
+      ],
+      "to": [
+        4.0,
+        2.0,
+        9.0
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            12.0,
+            10.0,
+            13.0,
+            11.0
+          ],
+          "texture": "#material"
+        },
+        "south": {
+          "uv": [
+            3.0,
+            10.0,
+            4.0,
+            11.0
+          ],
+          "texture": "#material"
+        },
+        "west": {
+          "uv": [
+            8.0,
+            10.0,
+            9.0,
+            11.0
+          ],
+          "texture": "#material"
+        },
+        "up": {
+          "uv": [
+            3.0,
+            8.0,
+            4.0,
+            9.0
+          ],
+          "texture": "#material"
+        },
+        "down": {
+          "uv": [
+            3.0,
+            7.0,
+            4.0,
+            8.0
+          ],
+          "texture": "#material"
+        }
+      }
+    }
+  ]
+}
