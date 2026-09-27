@@ -21,7 +21,10 @@ import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.entity.monster.Monster;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.item.ItemStack;
@@ -249,10 +252,20 @@ public final class UltimateJudgementCut {
 
     private static boolean canAffect(ServerPlayer caster, LivingEntity target) {
         if (target == caster || !target.isAlive()) return false;
-        if (!(target instanceof ServerPlayer other)) return true;
-        if (caster.isAlliedTo(other)) return false;
-        MinecraftServer server = caster.getServer();
-        return server != null && server.isPvpAllowed() && caster.canHarmPlayer(other);
+        if (target instanceof ServerPlayer other) {
+            if (caster.isAlliedTo(other)) return false;
+            MinecraftServer server = caster.getServer();
+            return server != null && server.isPvpAllowed() && caster.canHarmPlayer(other);
+        }
+        // 究极次元斩只锁敌对生物：动物、村民、宠物与盔甲架等一律不进入领域，也不结算伤害。
+        return isHostile(caster, target);
+    }
+
+    /** 怪物阵营（含模组怪物）算敌对；中立生物只有在正盯着施法者时才当作敌人。 */
+    private static boolean isHostile(ServerPlayer caster, LivingEntity target) {
+        if (target.getType().getCategory() == MobCategory.MONSTER) return true;
+        if (target instanceof Monster) return true;
+        return target instanceof Mob mob && mob.getTarget() == caster;
     }
 
     public static final class Session {
@@ -381,6 +394,9 @@ public final class UltimateJudgementCut {
                 }
             }
             for (LivingEntity target : targets) attackFivefold(caster, target);
+            if (targets.isEmpty()) {
+                caster.displayClientMessage(Component.literal("SSA：范围内没有敌对生物，友军未被波及"), true);
+            }
 
             level.sendParticles(ParticleTypes.FLASH, center.x, center.y, center.z,
                     4, 2.5, 2.5, 2.5, 0.0);

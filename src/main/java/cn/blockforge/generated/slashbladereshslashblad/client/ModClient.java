@@ -15,6 +15,7 @@ public final class ModClient {
     static {
         NeoForge.EVENT_BUS.register(UltimateJudgementCutClient.class);
         NeoForge.EVENT_BUS.register(BladeInspectClient.class);
+        NeoForge.EVENT_BUS.register(BladeAssemblyClient.class);
     }
 
     private ModClient() {
@@ -30,6 +31,13 @@ public final class ModClient {
         event.register(ForgeWorkbenchRenderer.soulModel("soul_fragment"));
         event.register(ForgeWorkbenchRenderer.soulModel("soul_ingot"));
         event.register(ForgeWorkbenchRenderer.soulModel("soul_sphere"));
+        HeldBladeModels.registerIcons(event);
+    }
+
+    /** 刀条 / 刀鞘拿在手里的模型：换成拔刀剑本体的刀刃、刀鞘网格。 */
+    @SubscribeEvent
+    public static void registerItemExtensions(net.neoforged.neoforge.client.extensions.common.RegisterClientExtensionsEvent event) {
+        HeldBladeModels.register(event);
     }
 
     @SubscribeEvent

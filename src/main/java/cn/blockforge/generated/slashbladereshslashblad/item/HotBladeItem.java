@@ -7,6 +7,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionResult;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
@@ -14,15 +15,24 @@ import net.minecraft.world.level.block.Blocks;
 
 /**
  * 烫手的刀条：覆土刀条在铁砧上锤出的最终工件。
- * 右键有水炼药锅急速淬火；不带钳子硬拿会一直烫着，30 秒后自然冷却。
+ * 右键有水炼药锅急速淬火；背包里没钳子硬拿会一直烫着，30 秒后自然冷却。
  * 两种途径都会把它变成「成品刀条」，才能用于制作拔刀剑。
+ *
+ * <p>它同时是"烧红的金属"：自带 1 点伤害、打中点燃目标，
+ * 背包里没钳子时每秒烫掉自己 1 滴血（见 {@link HotMetal}）。</p>
  */
-public class HotBladeItem extends RatioItem {
+public class HotBladeItem extends RatioItem implements HotMetal.Hot {
     /** 30 秒 = 600 游戏刻。 */
     public static final int COOL_TICKS = 600;
 
     public HotBladeItem(Properties properties) {
         super(properties);
+    }
+
+    @Override
+    public boolean hurtEnemy(ItemStack stack, LivingEntity target, LivingEntity attacker) {
+        HotMetal.ignite(target);
+        return super.hurtEnemy(stack, target, attacker);
     }
 
     @Override
@@ -33,6 +43,8 @@ public class HotBladeItem extends RatioItem {
         long left = Math.max(0, (COOL_TICKS - age) / 20);
         tooltip.add(Component.literal("烫手！右键有水炼药锅可急速降温"));
         tooltip.add(Component.literal("自然冷却还需约 " + left + " 秒"));
+        tooltip.add(Component.literal("烧红：攻击 +1，命中点燃目标"));
+        tooltip.add(Component.literal("背包里没放钳子时，每秒烫掉自己 1 滴血"));
     }
 
     @Override

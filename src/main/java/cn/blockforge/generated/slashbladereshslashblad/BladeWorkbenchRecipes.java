@@ -60,11 +60,12 @@ public final class BladeWorkbenchRecipes {
             originalSlots = list.size();
             if (list.stream().noneMatch(r -> exclusively(r, GeneratedMod.QUENCHED_BLADE.get())))
                 list.add(new Requirement(1, GeneratedMod.QUENCHED_BLADE.get()));
-            // 名刀（包括附属模组的配方）统一使用纯铁或纯金刀镡，禁止木质和竹质刀镡混入。
+            // 名刀（包括附属模组的配方）统一使用纯金属刀镡（纯铁/纯金/纯铜），禁止木质和竹质刀镡混入。
             for (int i = 0; i < list.size(); i++) {
                 if (isAnyTsuba(list.get(i))) list.set(i, guard());
             }
-            if (list.stream().noneMatch(r -> exclusively(r, GeneratedMod.TSUBA_PURE_IRON.get(), GeneratedMod.TSUBA_PURE_GOLD.get())))
+            if (list.stream().noneMatch(r -> exclusively(r, GeneratedMod.TSUBA_PURE_IRON.get(),
+                    GeneratedMod.TSUBA_PURE_GOLD.get(), GeneratedMod.TSUBA_PURE_COPPER.get())))
                 list.add(guard());
             requirements = List.copyOf(list);
         }
@@ -74,8 +75,11 @@ public final class BladeWorkbenchRecipes {
         }
         private static boolean isAnyTsuba(Requirement requirement) {
             Set<Item> tsuba = Set.of(GeneratedMod.TSUBA_WOOD_IRON.get(), GeneratedMod.TSUBA_WOOD_GOLD.get(),
+                    GeneratedMod.TSUBA_WOOD_COPPER.get(),
                     GeneratedMod.TSUBA_BAMBOO_IRON.get(), GeneratedMod.TSUBA_BAMBOO_GOLD.get(),
-                    GeneratedMod.TSUBA_PURE_IRON.get(), GeneratedMod.TSUBA_PURE_GOLD.get());
+                    GeneratedMod.TSUBA_BAMBOO_COPPER.get(),
+                    GeneratedMod.TSUBA_PURE_IRON.get(), GeneratedMod.TSUBA_PURE_GOLD.get(),
+                    GeneratedMod.TSUBA_PURE_COPPER.get());
             List<Item> options = requirement.options();
             return requirement.count > 0 && !options.isEmpty() && options.stream().anyMatch(tsuba::contains);
         }
@@ -169,13 +173,9 @@ public final class BladeWorkbenchRecipes {
         }
     }
 
-    private static Requirement guard() { return guard("pure"); }
-    private static Requirement guard(String type) {
-        return switch (type) {
-            case "wood" -> new Requirement(1, GeneratedMod.TSUBA_WOOD_IRON.get(), GeneratedMod.TSUBA_WOOD_GOLD.get());
-            case "bamboo" -> new Requirement(1, GeneratedMod.TSUBA_BAMBOO_IRON.get(), GeneratedMod.TSUBA_BAMBOO_GOLD.get());
-            default -> new Requirement(1, GeneratedMod.TSUBA_PURE_IRON.get(), GeneratedMod.TSUBA_PURE_GOLD.get());
-        };
+    private static Requirement guard() {
+        return new Requirement(1, GeneratedMod.TSUBA_PURE_IRON.get(), GeneratedMod.TSUBA_PURE_GOLD.get(),
+                GeneratedMod.TSUBA_PURE_COPPER.get());
     }
     private static Item item(String id) { return net.minecraft.core.registries.BuiltInRegistries.ITEM.get(ResourceLocation.parse(id)); }
     private static Requirement r(int n, String id) { return new Requirement(n, item(id)); }
@@ -191,11 +191,7 @@ public final class BladeWorkbenchRecipes {
             if (cached != null && cached.source.equals(source)) return cached.recipes;
         }
         List<NamedRecipe> list = new ArrayList<>();
-        for (boolean bamboo : new boolean[]{false, true}) list.add(built(bamboo ? "bamboo" : "wood",
-                BladeData.sword(bamboo ? BladeData.SLASHBLADE_BAMBOO : BladeData.SLASHBLADE_WOOD), true,
-                new Requirement(1, bamboo ? GeneratedMod.BAMBOO_BLADE_BLANK.get() : GeneratedMod.WOODEN_BLADE_BLANK.get()),
-                guard(bamboo ? "bamboo" : "wood"),
-                new Requirement(1, GeneratedMod.BLADE_HANDLE.get()), new Requirement(1, GeneratedMod.BLADE_SHEATH.get())));
+        // 木刀与竹刀不再走刀剑制作台：改为手持刀条右键现场组装（见 BladeAssembly）。
         Requirement blank = new Requirement(1, GeneratedMod.QUENCHED_BLADE.get());
         list.add(built("silver_bamboo", BladeData.sword(BladeData.SILVERBAMBOO), false,
                 r(1,"slashblade:slashblade_bamboo"), blank, guard(), new Requirement(1,Items.PAPER), new Requirement(1,Items.BLACK_DYE)));

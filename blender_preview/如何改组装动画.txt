@@ -1,0 +1,107 @@
+================================================================
+  如何修改「刀条→刀镡→刀柄→刀鞘」组装动画 — 零基础教学
+  （手持刀条右键触发的横放组装演出）
+================================================================
+
+【这一版改了什么】
+  · 四个部件不再是"物品图标"，而是从拔刀剑本体 jar 的 blade.obj
+    网格上直接切下来的真 3D 模型（刀条还带了一截"茎"），
+    四部件共用同一坐标系，落座时天然严丝合缝——对齐问题的根治。
+  · 贴图直接用了拔刀剑本体的材质表：木偶 = wood.png、竹光 = bamboo.png。
+  · （r11）修掉"模型被拉伸的质感"：原版有少量面沿材质表宽度平铺采样到 u>1，
+    游戏内钳制采样会把这些面拉丝——现在材质表横向平铺 5 份（320×128）、
+    UV 同步除以 5，逐像素与原版一致；并补全了透明区（素木刀表上刀镡落区
+    原本是透明的，木偶的刀镡会看不见）；舞台整体加了 14°/12° 俯仰侧摆，
+    刀有透视纵深，不再像正对屏幕的纸条。
+  · 动画改成全横放：刀条横着飞入（刀尖朝左）→ 刀镡从刀条右侧滑来、
+    略微多穿过去一点再回位 → 刀柄从右侧推上罩住茎 →
+    刀鞘从刀条左侧横着出现、向右平移罩住刀条 → 特效收束进背包。
+
+【动画文件都在哪】
+  游戏真正读取的动画数据（VMD，四根骨骼 484 个关键帧）：
+    mod\src\main\resources\assets\slashbladeresh_slashblad\
+        assembly\blade_assembly.vmd
+  游戏读取的部件网格（四部件顶点+UV，由脚本生成，勿手改）：
+    mod\src\main\resources\assets\slashbladeresh_slashblad\
+        assembly\blade_parts.json
+  部件贴图（拔刀剑本体材质表横向平铺 5 份 + 透明区补全，320×128）：
+    mod\src\main\resources\assets\slashbladeresh_slashblad\
+        textures\assembly\sb_wood.png / sb_bamboo.png
+  给你在 Blender 里编辑的文件（模型 + 动画一体，免插件）：
+    blender_preview\blade_assembly.glb
+  MMD 预览用（可选）：
+    blender_preview\blade_assembly_parts.pmx
+  配套脚本（animation_tools\ 下，都是纯 Python，不用装 Blender）：
+    build_parts_model.py      从拔刀剑 jar 切网格 → 上面三个资源 + glb/pmx
+    assembly_vmd.py           动画编排 → blade_assembly.vmd
+    export_assembly_vmd.py    你改完的 glb → 写回 blade_assembly.vmd
+    preview_assembly.py       渲一张 12 帧预览图自查
+    preview_textured.py       逐像素贴图+舞台倾角渲染（模拟游戏内观感）
+
+────────────────────────────────────────────
+第 0 步：打开工程
+────────────────────────────────────────────
+1. 打开 Blender，菜单 File > Import > glTF 2.0（.glb）
+   选择 blender_preview\blade_assembly.glb
+2. 导入后能看到一把横放的拆件刀：刀条（带一截茎）、刀镡、刀柄、刀鞘。
+3. 按空格播放，就是一整条组装动画。
+
+────────────────────────────────────────────
+第 1 步：时间轴约定（改之前先记住）
+────────────────────────────────────────────
+  帧率 30fps；0-120 帧 = 游戏内 80 刻（约 4 秒），1 刻 = 1.5 帧。
+  刀镡落座 = 第 42 帧（刻 28）
+  刀柄落座 = 第 75 帧（刻 50）
+  入鞘落座 = 第 99 帧（刻 66）
+  服务端在这三刻会震刀+冒火花，落座时刻要尽量保持，
+  不然火花和部件到位的画面会对不上。
+
+  【对齐的秘密】四个部件的网格顶点在生成时就按"整刀已组装"摆好了，
+  动画通道里记的只是偏移量：位置 (0,0,0) = 完全对齐的落座位。
+  所以只要部件最后回到 (0,0,0)，就绝对不会错位。
+
+────────────────────────────────────────────
+第 2 步：怎么改
+────────────────────────────────────────────
+1. 动画挂在四个物体上，物体名（导出脚本按名字对应，别改）：
+     blade_blank = 刀条   tsuba = 刀镡   handle = 刀柄   sheath = 刀鞘
+2. 拖动时间线到想改的帧 → 选中部件 → 按 G 移动 / R 旋转
+   → 按 I → 选 Location & Rotation（打关键帧）。
+3. 想整体提前/推后某个部件：在时间线框里框选它的黄色菱形，
+   按 G 沿时间轴平移即可。
+4. 单位约定：1 Blender 单位 = 1 格；X=屏幕右、Y=屏幕上、Z=朝屏幕外。
+   别缩放部件大小（游戏里网格大小是固定的）。
+5. 落座位就是位置 (0,0,0)、旋转 0——每段动画最后都让部件回到这里，
+   画面里四部件就是严丝合缝的一把整刀。
+
+────────────────────────────────────────────
+第 3 步：导出回游戏
+────────────────────────────────────────────
+1. Blender 里 File > Export > glTF 2.0（.glb），
+   覆盖保存 blender_preview\blade_assembly.glb，
+   导出面板勾选 Animation。
+2. 在项目根目录跑（纯 Python，不需要 Blender）：
+     python animation_tools\export_assembly_vmd.py
+   它会写回 src\main\...\assembly\blade_assembly.vmd。
+3. 想看效果不用进游戏，先渲预览图：
+     python animation_tools\preview_assembly.py
+   产物在 model-previews\assembly_grid.png。
+4. 重新构建模组（或把改好的 glb 发给我，我帮你导出+构建+交付新 jar）。
+
+────────────────────────────────────────────
+常见问题
+────────────────────────────────────────────
+Q：游戏里动画和火花对不上？
+A：改动了 42/75/99 三帧的落座时刻。把部件到位时刻调回去，
+   或告诉我，我把服务端的刻数（BladeAssembly 里 28/50/66）同步改。
+Q：导出报"glb 里缺少部件 xxx 的动画通道"？
+A：物体被改名了，改回 blade_blank/tsuba/handle/sheath 之一。
+Q：部件在游戏里错位了？
+A：先跑 python animation_tools\build_parts_model.py 重新生成
+   blade_parts.json（网格是它切的，不会自己坏）。
+Q：想换刀条/刀镡/刀柄/刀鞘的形状细节？
+A：都在拔刀剑本体 jar 的 blade.obj 里，切分规则写在
+   animation_tools\build_parts_model.py 顶部注释，改阈值重跑即可。
+Q：VMD 文件坏了/想恢复出厂动作？
+A：跑 python animation_tools\assembly_vmd.py 重新生成一份。
+================================================================

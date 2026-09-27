@@ -119,6 +119,8 @@ public final class UltimateJudgementCutClient {
                 .withStyle(ChatFormatting.DARK_GRAY));
         event.getToolTip().add(Component.translatable("tooltip.slashbladeresh_slashblad.yamato_ssa_cost")
                 .withStyle(ChatFormatting.GOLD));
+        event.getToolTip().add(Component.translatable("tooltip.slashbladeresh_slashblad.yamato_ssa_targets")
+                .withStyle(ChatFormatting.DARK_GRAY));
     }
 
     @SubscribeEvent

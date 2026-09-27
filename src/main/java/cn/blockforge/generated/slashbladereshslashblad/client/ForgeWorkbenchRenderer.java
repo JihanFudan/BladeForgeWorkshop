@@ -34,14 +34,22 @@ public class ForgeWorkbenchRenderer implements BlockEntityRenderer<ForgeWorkbenc
             FloatingItem.resting(level, inv.getItem(0), 0.5, 1.035 + sink, 0.49, 0.48f,
                     light, overlay, pose, buffers, 1);
         }
-        for (int slot = 1; slot <= 2; slot++) {
-            ItemStack stack = inv.getItem(slot);
+        // 融合槽三格（slot 1 钢、slot 5 低碳钢、slot 6 高碳钢）从左到右分堆；炼钢槽（slot 2）在右侧。
+        int[] ingotSlots = {1, 5, 6, 2};
+        double[] ingotX = {0.18, 0.32, 0.46, 0.78};
+        for (int s = 0; s < ingotSlots.length; s++) {
+            ItemStack stack = inv.getItem(ingotSlots[s]);
             int count = Math.min(stack.getCount(), 5);
             for (int i = 0; i < count; i++) {
-                double x = slot == 1 ? 0.22 : 0.78;
-                FloatingItem.resting(level, stack, x, 1.035 + i * 0.018 + sink, 0.5, 0.25f,
-                        light, overlay, pose, buffers, slot * 10 + i);
+                // 烧红锭材在砧面上放大显示（之前 0.25 太小，用户看不清是什么）
+                FloatingItem.resting(level, stack, ingotX[s], 1.035 + i * 0.02 + sink, 0.5, 0.4f,
+                        light, overlay, pose, buffers, ingotSlots[s] * 10 + i);
             }
+        }
+        // 煤炭槽（slot 4）：等待研磨成碳粉的煤炭，摆在砧面前缘。
+        if (anvil && !inv.getItem(4).isEmpty()) {
+            FloatingItem.resting(level, inv.getItem(4), 0.5, 1.02 + sink, 0.78, 0.34f,
+                    light, overlay, pose, buffers, 90);
         }
         if (anvil && BladeData.isProudSoul(inv.getItem(3))) {
             drawSoul(inv.getItem(3), sink, pose, buffers, light, overlay);

@@ -65,6 +65,11 @@ public final class ForgeEvents {
         if (!(event.getEntity() instanceof ServerPlayer player) || player.level().isClientSide) {
             return;
         }
+        // 烧红的工件：背包里没有钳子就一直烫手，每秒 1 滴血（半颗心）。
+        // 每秒结算一次而不是每 tick —— 每 tick 扣会被无敌帧吃掉，反而一点都不掉。
+        if (player.tickCount % 20 == 0) {
+            burnHotHands(player);
+        }
         if (player.tickCount % 10 != 0) {
             return;
         }
@@ -78,6 +83,33 @@ public final class ForgeEvents {
                 player.displayClientMessage(Component.literal("刀条自然冷却，现在是可用于制刀的成品刀条。"), true);
             }
         }
+    }
+
+    /** 手上拿着烧红的金属、背包（含快捷栏）里又没钳子，就每秒烫掉 1 滴血。 */
+    private static void burnHotHands(ServerPlayer player) {
+        boolean hot = cn.blockforge.generated.slashbladereshslashblad.item.HotMetal.isHot(player.getMainHandItem())
+                || cn.blockforge.generated.slashbladereshslashblad.item.HotMetal.isHot(player.getOffhandItem());
+        if (!hot) {
+            return;
+        }
+        if (hasTongsInInventory(player)) {
+            // 背包里有钳子，随时能夹着工件，这是正确拿法，不烫。
+            return;
+        }
+        cn.blockforge.generated.slashbladereshslashblad.item.HotMetal.burnSelf(player);
+    }
+
+    /** 钳子判定：背包（含快捷栏 36 格）和副手都算；只看手上拿没拿会漏掉“一手钳子一手工件”的拿法。 */
+    public static boolean hasTongsInInventory(Player player) {
+        if (player.getOffhandItem().is(GeneratedMod.TONGS.get())) {
+            return true;
+        }
+        for (ItemStack stack : player.getInventory().items) {
+            if (stack.is(GeneratedMod.TONGS.get())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -132,7 +164,7 @@ public final class ForgeEvents {
             rough.shrink(1);
             give(player, new ItemStack(bamboo ? GeneratedMod.BAMBOO_BLADE_BLANK.get() : GeneratedMod.WOODEN_BLADE_BLANK.get()));
             playWorkSound(level, player, SoundEvents.AXE_STRIP);
-            tell(player, (bamboo ? "竹刀条" : "木刀条") + "雕好了！拿到刀剑制作台与刀镡、刀柄、刀鞘组装。");
+            tell(player, (bamboo ? "竹刀条" : "木刀条") + "雕好了！手持它右键，配齐背包里的刀镡、刀柄、刀鞘即可现场组装。");
             event.setCancellationResult(InteractionResult.CONSUME);
             event.setCanceled(true);
         }

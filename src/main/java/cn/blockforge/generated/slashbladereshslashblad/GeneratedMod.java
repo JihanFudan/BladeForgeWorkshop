@@ -41,32 +41,53 @@ public final class GeneratedMod {
     /* ---------------- 木质刀条 ---------------- */
     public static final DeferredItem<Item> WOODEN_ROUGH = item("wooden_rough");
     public static final DeferredItem<Item> BAMBOO_ROUGH = item("bamboo_rough");
-    public static final DeferredItem<Item> WOODEN_BLADE_BLANK = item("wooden_blade_blank");
-    public static final DeferredItem<Item> BAMBOO_BLADE_BLANK = item("bamboo_blade_blank");
+    // 刀条：手持右键即可与背包里的刀镡、刀柄、刀鞘现场组装（见 BladeAssembly）。
+    public static final DeferredItem<Item> WOODEN_BLADE_BLANK = ITEMS.registerItem("wooden_blade_blank",
+            props -> new cn.blockforge.generated.slashbladereshslashblad.item.BladeBlankItem(props, false));
+    public static final DeferredItem<Item> BAMBOO_BLADE_BLANK = ITEMS.registerItem("bamboo_blade_blank",
+            props -> new cn.blockforge.generated.slashbladereshslashblad.item.BladeBlankItem(props, true));
     public static final DeferredItem<Item> BLADE_HANDLE = item("blade_handle");
     public static final DeferredItem<Item> BLADE_SHEATH = item("blade_sheath");
 
-    /* ---------------- 金属锻造链 ---------------- */
+    /* ---------------- 金属锻造链 ----------------
+     * "灼热*" 这些是刚出炉、还烧红的工件：自带 1 点伤害、打中点燃目标，
+     * 背包里没有钳子时每秒烫自己 1 滴血（见 item/HotMetal）。 */
     public static final DeferredItem<Item> STEEL_INGOT = item("steel_ingot");
-    public static final DeferredItem<Item> HEATED_IRON = item("heated_iron");
-    public static final DeferredItem<Item> HEATED_STEEL = item("heated_steel");
+    /* 1.0.4-r17 新增：碳粉 + 两种新钢材（低碳钢/高碳钢）。碳粉由煤炭在锻造铁砧上锤出；
+     * 两种钢材在刀剑制作台上用「碳粉 + 黏土 + 钢锭」锤出，再入炉烧红参与融合钢流程。 */
+    public static final DeferredItem<Item> CARBON_POWDER = item("carbon_powder");
+    public static final DeferredItem<Item> LOW_CARBON_STEEL = item("low_carbon_steel");
+    public static final DeferredItem<Item> HIGH_CARBON_STEEL = item("high_carbon_steel");
+    public static final DeferredItem<Item> HEATED_IRON = ITEMS.registerItem("heated_iron",
+            props -> new cn.blockforge.generated.slashbladereshslashblad.item.HotIngotItem(
+                    props.attributes(cn.blockforge.generated.slashbladereshslashblad.item.HotMetal.attackModifier())));
+    public static final DeferredItem<Item> HEATED_STEEL = ITEMS.registerItem("heated_steel",
+            props -> new cn.blockforge.generated.slashbladereshslashblad.item.HotIngotItem(
+                    props.attributes(cn.blockforge.generated.slashbladereshslashblad.item.HotMetal.attackModifier())));
+    public static final DeferredItem<Item> HEATED_LOW_CARBON = hotIngot("heated_low_carbon");
+    public static final DeferredItem<Item> HEATED_HIGH_CARBON = hotIngot("heated_high_carbon");
     public static final DeferredItem<Item> FUSED_STEEL = ratio("fused_steel");
-    public static final DeferredItem<Item> HEATED_FUSED_STEEL = ratio("heated_fused_steel");
+    public static final DeferredItem<Item> HEATED_FUSED_STEEL = hotRatio("heated_fused_steel");
     public static final DeferredItem<Item> CRUDE_BLADE = ratio("crude_blade");
-    public static final DeferredItem<Item> HEATED_CRUDE_BLADE = ratio("heated_crude_blade");
+    public static final DeferredItem<Item> HEATED_CRUDE_BLADE = hotRatio("heated_crude_blade");
     public static final DeferredItem<Item> UNFINISHED_BLADE = ratio("unfinished_blade");
     public static final DeferredItem<Item> CLAY_BLADE = ratio("clay_blade");
-    public static final DeferredItem<Item> HEATED_CLAY_BLADE = ratio("heated_clay_blade");
-    public static final DeferredItem<HotBladeItem> HOT_BLADE = ITEMS.registerItem("hot_blade", props -> new HotBladeItem(props.stacksTo(1)));
+    public static final DeferredItem<Item> HEATED_CLAY_BLADE = hotRatio("heated_clay_blade");
+    public static final DeferredItem<HotBladeItem> HOT_BLADE = ITEMS.registerItem("hot_blade",
+            props -> new HotBladeItem(props.stacksTo(1)
+                    .attributes(cn.blockforge.generated.slashbladereshslashblad.item.HotMetal.attackModifier())));
     public static final DeferredItem<Item> QUENCHED_BLADE = ratio("quenched_blade");
 
     /* ---------------- 刀镡 ---------------- */
     public static final DeferredItem<Item> TSUBA_WOOD_IRON = item("tsuba_wood_iron");
     public static final DeferredItem<Item> TSUBA_WOOD_GOLD = item("tsuba_wood_gold");
+    public static final DeferredItem<Item> TSUBA_WOOD_COPPER = item("tsuba_wood_copper");
     public static final DeferredItem<Item> TSUBA_BAMBOO_IRON = item("tsuba_bamboo_iron");
     public static final DeferredItem<Item> TSUBA_BAMBOO_GOLD = item("tsuba_bamboo_gold");
+    public static final DeferredItem<Item> TSUBA_BAMBOO_COPPER = item("tsuba_bamboo_copper");
     public static final DeferredItem<Item> TSUBA_PURE_IRON = item("tsuba_pure_iron");
     public static final DeferredItem<Item> TSUBA_PURE_GOLD = item("tsuba_pure_gold");
+    public static final DeferredItem<Item> TSUBA_PURE_COPPER = item("tsuba_pure_copper");
 
     /* ---------------- 工具与手册 ---------------- */
     public static final DeferredItem<Item> CUTTING_KNIFE = ITEMS.registerItem("cutting_knife", ForgingToolItem::new);
@@ -112,6 +133,23 @@ public final class GeneratedMod {
         return (DeferredItem<T>) ITEMS.registerItem(id, props -> new RatioItem(props.stacksTo(1)));
     }
 
+    /** 带配比、而且烧红的工件（灼热融合钢 / 灼热粗制刀条 / 灼热覆土刀条）。 */
+    @SuppressWarnings("unchecked")
+    private static <T extends Item> DeferredItem<T> hotRatio(String id) {
+        return (DeferredItem<T>) ITEMS.registerItem(id,
+                props -> new cn.blockforge.generated.slashbladereshslashblad.item.HotRatioItem(
+                        props.stacksTo(1)
+                                .attributes(cn.blockforge.generated.slashbladereshslashblad.item.HotMetal.attackModifier())));
+    }
+
+    /** 烧红的钢锭（灼热低碳钢 / 灼热高碳钢）：行为与灼热钢锭一致。 */
+    @SuppressWarnings("unchecked")
+    private static <T extends Item> DeferredItem<T> hotIngot(String id) {
+        return (DeferredItem<T>) ITEMS.registerItem(id,
+                props -> new cn.blockforge.generated.slashbladereshslashblad.item.HotIngotItem(
+                        props.attributes(cn.blockforge.generated.slashbladereshslashblad.item.HotMetal.attackModifier())));
+    }
+
     /** 创造模式专用物品栏：收录本模组全部物品与方块，按工序排序。 */
     public static final DeferredHolder<CreativeModeTab, CreativeModeTab> FORGE_TAB = CREATIVE_MODE_TABS.register("forge_tab",
             () -> CreativeModeTab.builder()
@@ -129,6 +167,11 @@ public final class GeneratedMod {
                         output.accept(HEATED_IRON.get());
                         output.accept(HEATED_STEEL.get());
                         output.accept(STEEL_INGOT.get());
+                        output.accept(CARBON_POWDER.get());
+                        output.accept(LOW_CARBON_STEEL.get());
+                        output.accept(HIGH_CARBON_STEEL.get());
+                        output.accept(HEATED_LOW_CARBON.get());
+                        output.accept(HEATED_HIGH_CARBON.get());
                         output.accept(FUSED_STEEL.get());
                         output.accept(HEATED_FUSED_STEEL.get());
                         output.accept(CRUDE_BLADE.get());
@@ -144,10 +187,13 @@ public final class GeneratedMod {
                         output.accept(BAMBOO_BLADE_BLANK.get());
                         output.accept(TSUBA_WOOD_IRON.get());
                         output.accept(TSUBA_WOOD_GOLD.get());
+                        output.accept(TSUBA_WOOD_COPPER.get());
                         output.accept(TSUBA_BAMBOO_IRON.get());
                         output.accept(TSUBA_BAMBOO_GOLD.get());
+                        output.accept(TSUBA_BAMBOO_COPPER.get());
                         output.accept(TSUBA_PURE_IRON.get());
                         output.accept(TSUBA_PURE_GOLD.get());
+                        output.accept(TSUBA_PURE_COPPER.get());
                         output.accept(BLADE_HANDLE.get());
                         output.accept(BLADE_SHEATH.get());
                         // 直接放"写好内容"的那一本，从创造栏拿出来的手册可以正常翻阅。
@@ -167,10 +213,12 @@ public final class GeneratedMod {
         modBus.addListener((RegisterPayloadHandlersEvent event) -> {
             UltimateJudgementCutNetwork.register(event);
             BladeInspectNetwork.register(event);
+            BladeAssemblyNetwork.register(event);
         });
         NeoForge.EVENT_BUS.register(PlayerBookEvents.class);
         NeoForge.EVENT_BUS.register(ForgeEvents.class);
         NeoForge.EVENT_BUS.register(UltimateJudgementCut.class);
         NeoForge.EVENT_BUS.register(InspectInterruptGuard.class);
+        NeoForge.EVENT_BUS.register(BladeAssembly.class);
     }
 }

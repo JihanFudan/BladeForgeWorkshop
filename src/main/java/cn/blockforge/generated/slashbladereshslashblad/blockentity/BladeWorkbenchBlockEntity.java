@@ -49,6 +49,19 @@ public class BladeWorkbenchBlockEntity extends BlockEntity {
         int slot = -1;
         for (int i = 0; i < SLOT_COUNT; i++) if (inventory.getItem(i).isEmpty()) { slot = i; break; }
         if (slot < 0) { tell(player, "台面材料已满，空手右键可全部取回。"); return ItemInteractionResult.SUCCESS; }
+        // 合金原料（碳粉/黏土/钢锭）：只要台面还空着或全是同类原料，就直接摆上去。
+        if (isAlloyMaterial(held)) {
+            boolean tableAllAlloy = stacks().stream().allMatch(s -> s.isEmpty() || isAlloyMaterial(s));
+            if (!tableAllAlloy) {
+                tell(player, "台面已有别的材料，先空手右键取回，再配碳粉、黏土和钢锭。");
+                return ItemInteractionResult.SUCCESS;
+            }
+            inventory.setItem(slot, held.copyWithCount(1)); held.shrink(1);
+            level.playSound(null, pos, SoundEvents.WOOD_PLACE, SoundSource.BLOCKS, 0.7f, 1.1f);
+            tell(player, "合金原料已放入：1 钢锭 + 1 黏土 + 1 碳粉 = 低碳钢，再加一份碳粉 = 高碳钢。用锻造锤右键完成。");
+            sync();
+            return ItemInteractionResult.SUCCESS;
+        }
         List<ItemStack> proposed = stacks();
         proposed.set(slot, held.copyWithCount(1));
         List<BladeWorkbenchRecipes.NamedRecipe> recipes = BladeWorkbenchRecipes.namedRecipes(level);
@@ -71,6 +84,11 @@ public class BladeWorkbenchBlockEntity extends BlockEntity {
     }
     private void forge(Level level, BlockPos pos, Player player) {
         List<ItemStack> inputs = stacks();
+        // 先判合金：钢锭 + 黏土 + 碳粉（1 份低碳、2 份高碳），与其它名刀配方互斥。
+        if (inputs.stream().anyMatch(this::isAlloyMaterial)) {
+            forgeAlloy(level, pos, player, inputs);
+            return;
+        }
         var recipe = BladeWorkbenchRecipes.find(inputs, level);
         if (recipe == null) { tell(player, "材料数量或原刀条件未满足，请按 JEI 配方检查。"); return; }
         ItemStack out = recipe.assemble(inputs, level);
@@ -81,17 +99,22 @@ public class BladeWorkbenchBlockEntity extends BlockEntity {
         boolean gold = tsuba.is(GeneratedMod.TSUBA_WOOD_GOLD.get())
                 || tsuba.is(GeneratedMod.TSUBA_BAMBOO_GOLD.get())
                 || tsuba.is(GeneratedMod.TSUBA_PURE_GOLD.get());
+        boolean copper = !gold && (tsuba.is(GeneratedMod.TSUBA_WOOD_COPPER.get())
+                || tsuba.is(GeneratedMod.TSUBA_BAMBOO_COPPER.get())
+                || tsuba.is(GeneratedMod.TSUBA_PURE_COPPER.get()));
+        String guard = gold ? "gold" : copper ? "copper" : "iron";
         ItemStack blank = find(GeneratedMod.QUENCHED_BLADE.get());
-        int attack = (gold ? 2 : 0) + BladeData.ratioAttackBonus(blank);
-        int durability = (gold ? 1 : 5) + BladeData.ratioDurabilityBonus(blank);
+        // 刀镡修正：金 攻+2 耐+1，铜 攻+1 耐+1，铁 攻+0 耐+5。
+        int attack = (gold ? 2 : copper ? 1 : 0) + BladeData.ratioAttackBonus(blank);
+        int durability = (gold || copper ? 1 : 5) + BladeData.ratioDurabilityBonus(blank);
         ItemStack source = inputs.stream().filter(BladeData::isSlashBlade).findFirst().orElse(ItemStack.EMPTY);
         ItemStack definition = recipe.output(level);
         if (recipe.basic()) {
-            BladeData.markCompatibleBlade(out, attack, durability, gold ? "gold" : "iron",
+            BladeData.markCompatibleBlade(out, attack, durability, guard,
                     out.is(net.minecraft.core.registries.BuiltInRegistries.ITEM.get(BladeData.SLASHBLADE_BAMBOO)));
         } else {
             if (!source.isEmpty()) BladeData.inheritProgress(source, out, definition);
-            BladeData.applyUpgradeBonus(out, attack, durability, gold ? "gold" : "iron");
+            BladeData.applyUpgradeBonus(out, attack, durability, guard);
         }
         BladeData.rememberDefinition(out, definition);
         List<ItemStack> remains = recipe.remainders(inputs, level);
@@ -106,10 +129,44 @@ public class BladeWorkbenchBlockEntity extends BlockEntity {
     private ItemStack find(net.minecraft.world.item.Item item) {
         return stacks().stream().filter(s -> s.is(item)).findFirst().orElse(ItemStack.EMPTY);
     }
+    /** 合金原料：碳粉、黏土球、钢锭。 */
+    private boolean isAlloyMaterial(ItemStack stack) {
+        return stack.is(GeneratedMod.CARBON_POWDER.get())
+                || stack.is(net.minecraft.world.item.Items.CLAY_BALL)
+                || stack.is(GeneratedMod.STEEL_INGOT.get());
+    }
+    /** 钢锭×1 + 黏土×1 + 碳粉×1 → 低碳钢；碳粉×2 → 高碳钢。台面只允许这三类原料。 */
+    private void forgeAlloy(Level level, BlockPos pos, Player player, List<ItemStack> inputs) {
+        int carbon = 0, clay = 0, steel = 0;
+        for (ItemStack s : inputs) {
+            if (s.isEmpty()) continue;
+            if (s.is(GeneratedMod.CARBON_POWDER.get())) carbon += s.getCount();
+            else if (s.is(net.minecraft.world.item.Items.CLAY_BALL)) clay += s.getCount();
+            else if (s.is(GeneratedMod.STEEL_INGOT.get())) steel += s.getCount();
+            else { tell(player, "合金台面只能放碳粉、黏土和钢锭，先空手右键取回多余材料。"); return; }
+        }
+        net.minecraft.world.item.Item result = null;
+        if (steel == 1 && clay == 1 && carbon == 1) result = GeneratedMod.LOW_CARBON_STEEL.get();
+        else if (steel == 1 && clay == 1 && carbon == 2) result = GeneratedMod.HIGH_CARBON_STEEL.get();
+        if (result == null) {
+            tell(player, "合金配比不对：低碳钢＝1 钢锭 + 1 黏土 + 1 碳粉；高碳钢＝1 钢锭 + 1 黏土 + 2 碳粉。当前碳 "
+                    + carbon + "、黏土 " + clay + "、钢锭 " + steel + "。");
+            return;
+        }
+        for (int i = 0; i < SLOT_COUNT; i++) inventory.removeItemNoUpdate(i);
+        giveBack(player, new ItemStack(result));
+        tell(player, "锻打完成，得到" + (result == GeneratedMod.LOW_CARBON_STEEL.get() ? "低碳钢" : "高碳钢")
+                + "！放进烧铁炉烧红，再凑满 5 枚灼热钢（可混钢种）上砧融成融合钢。");
+        level.playSound(null, pos, SoundEvents.ANVIL_HIT, SoundSource.BLOCKS, 0.9f, 1.05f);
+        sync();
+    }
     private boolean isTsuba(ItemStack stack) {
         return stack.is(GeneratedMod.TSUBA_WOOD_IRON.get()) || stack.is(GeneratedMod.TSUBA_WOOD_GOLD.get())
+                || stack.is(GeneratedMod.TSUBA_WOOD_COPPER.get())
                 || stack.is(GeneratedMod.TSUBA_BAMBOO_IRON.get()) || stack.is(GeneratedMod.TSUBA_BAMBOO_GOLD.get())
-                || stack.is(GeneratedMod.TSUBA_PURE_IRON.get()) || stack.is(GeneratedMod.TSUBA_PURE_GOLD.get());
+                || stack.is(GeneratedMod.TSUBA_BAMBOO_COPPER.get())
+                || stack.is(GeneratedMod.TSUBA_PURE_IRON.get()) || stack.is(GeneratedMod.TSUBA_PURE_GOLD.get())
+                || stack.is(GeneratedMod.TSUBA_PURE_COPPER.get());
     }
     private static void tell(Player player, String text) { player.displayClientMessage(net.minecraft.network.chat.Component.literal(text), true); }
     private static void giveBack(Player player, ItemStack stack) { if (!stack.isEmpty()) player.getInventory().placeItemBackInInventory(stack); }

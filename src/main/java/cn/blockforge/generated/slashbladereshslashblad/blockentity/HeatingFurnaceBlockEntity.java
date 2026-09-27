@@ -22,7 +22,7 @@ import net.minecraft.world.phys.BlockHitResult;
  * 烧铁炉的方块实体：一次最多放 5 枚（个）可烧材料，约 8 秒烧红。
  * 可烧：铁锭→灼热铁锭、钢锭→灼热钢锭、融合钢→灼热融合钢、粗制刀条→灼热粗制刀条、
  * 覆土刀条→灼热覆土刀条；未完成的刀条配黏土可直接覆土入炉。
- * 烧好后炉膛滚烫，必须手持钳子右键夹取。炉口悬浮显示物品并逐渐变亮（客户端渲染器）。
+ * 烧好后炉膛滚烫，背包（含快捷栏与副手）里有钳子就能右键夹取。炉口悬浮显示物品并逐渐变亮（客户端渲染器）。
  */
 public class HeatingFurnaceBlockEntity extends BlockEntity {
     /** 一批烧制耗时（8 秒）。 */
@@ -70,6 +70,12 @@ public class HeatingFurnaceBlockEntity extends BlockEntity {
         if (stack.is(GeneratedMod.STEEL_INGOT.get())) {
             return GeneratedMod.HEATED_STEEL.get();
         }
+        if (stack.is(GeneratedMod.LOW_CARBON_STEEL.get())) {
+            return GeneratedMod.HEATED_LOW_CARBON.get();
+        }
+        if (stack.is(GeneratedMod.HIGH_CARBON_STEEL.get())) {
+            return GeneratedMod.HEATED_HIGH_CARBON.get();
+        }
         if (stack.is(GeneratedMod.FUSED_STEEL.get())) {
             return GeneratedMod.HEATED_FUSED_STEEL.get();
         }
@@ -87,6 +93,8 @@ public class HeatingFurnaceBlockEntity extends BlockEntity {
         Item cold = stack.getItem();
         if (stack.is(GeneratedMod.HEATED_IRON.get())) cold = Items.IRON_INGOT;
         else if (stack.is(GeneratedMod.HEATED_STEEL.get())) cold = GeneratedMod.STEEL_INGOT.get();
+        else if (stack.is(GeneratedMod.HEATED_LOW_CARBON.get())) cold = GeneratedMod.LOW_CARBON_STEEL.get();
+        else if (stack.is(GeneratedMod.HEATED_HIGH_CARBON.get())) cold = GeneratedMod.HIGH_CARBON_STEEL.get();
         else if (stack.is(GeneratedMod.HEATED_FUSED_STEEL.get())) cold = GeneratedMod.FUSED_STEEL.get();
         else if (stack.is(GeneratedMod.HEATED_CRUDE_BLADE.get())) cold = GeneratedMod.CRUDE_BLADE.get();
         else if (stack.is(GeneratedMod.HEATED_CLAY_BLADE.get())) cold = GeneratedMod.CLAY_BLADE.get();
@@ -95,6 +103,7 @@ public class HeatingFurnaceBlockEntity extends BlockEntity {
 
     private static boolean isHeated(ItemStack stack) {
         return stack.is(GeneratedMod.HEATED_IRON.get()) || stack.is(GeneratedMod.HEATED_STEEL.get())
+                || stack.is(GeneratedMod.HEATED_LOW_CARBON.get()) || stack.is(GeneratedMod.HEATED_HIGH_CARBON.get())
                 || stack.is(GeneratedMod.HEATED_FUSED_STEEL.get()) || stack.is(GeneratedMod.HEATED_CRUDE_BLADE.get())
                 || stack.is(GeneratedMod.HEATED_CLAY_BLADE.get()) || stack.is(GeneratedMod.HOT_BLADE.get());
     }
@@ -108,9 +117,10 @@ public class HeatingFurnaceBlockEntity extends BlockEntity {
             return ItemInteractionResult.SUCCESS;
         }
         ItemStack stored = inventory.getItem(0);
-        // 一、烧好了：只认钳子
+        // 一、烧好了：背包里有钳子就能夹取（不再要求钳子必须拿在手上）
         if (!stored.isEmpty() && done) {
-            if (held.is(GeneratedMod.TONGS.get())) {
+            if (held.is(GeneratedMod.TONGS.get())
+                    || cn.blockforge.generated.slashbladereshslashblad.ForgeEvents.hasTongsInInventory(player)) {
                 giveBack(player, inventory.removeItemNoUpdate(0));
                 done = false;
                 heatStart = 0;
@@ -118,7 +128,7 @@ public class HeatingFurnaceBlockEntity extends BlockEntity {
                 tell(player, "用钳子夹出来了！趁热放上锻造铁砧。");
                 sync();
             } else {
-                tell(player, "炉膛烫得吓人，徒手够不着——手持钳子右键夹取。");
+                tell(player, "炉膛烫得吓人，徒手够不着——把钳子放进背包再右键取件。");
             }
             return ItemInteractionResult.SUCCESS;
         }
@@ -164,10 +174,10 @@ public class HeatingFurnaceBlockEntity extends BlockEntity {
                 return ItemInteractionResult.SUCCESS;
             }
             if (held.isEmpty()) {
-                tell(player, "烧铁炉可烧：铁锭、钢锭、融合钢、粗制刀条、覆土刀条；烧好后用钳子夹取。");
+                tell(player, "烧铁炉可烧：铁锭、钢锭、低碳钢、高碳钢、融合钢、粗制刀条、覆土刀条；烧好后用钳子夹取。");
                 return ItemInteractionResult.SUCCESS;
             }
-            tell(player, "炉子不收这个。可烧：铁锭、钢锭、融合钢、粗制刀条、覆土刀条。");
+            tell(player, "炉子不收这个。可烧：铁锭、钢锭、低碳钢、高碳钢、融合钢、粗制刀条、覆土刀条。");
             return ItemInteractionResult.SUCCESS;
         }
         // 四、正在烧
