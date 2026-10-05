@@ -175,20 +175,16 @@ def tang_box(uv_rect, x1=14.0):
 
 
 def _machi_uv_rect(vs, vts, faces):
-    """刀条根部（镡前那一小段）UV 的平均值，取一小块当"茎"的颜色。"""
-    us, vvs = [], []
-    for vi, ti in faces["blade"]:
-        pts = [vs[i - 1] for i in vi]
-        cx = sum(p[0] for p in pts) / 3.0
-        if -62.0 <= cx <= -42.0:
-            for i in ti:
-                us.append(vts[i - 1][0])
-                vvs.append(vts[i - 1][1])
-    if not us:
-        return (0.5, 0.5, 0.51, 0.51)
-    cu, cv = sum(us) / len(us), sum(vvs) / len(vvs)
-    return ((cu - 0.004) / TILE_U, 1.0 - (cv + 0.012),
-            (cu + 0.004) / TILE_U, 1.0 - (cv - 0.004))
+    """给刀尾“茎”取刀身本色。
+
+    旧实现把镡前各面的 UV 全部求平均，平均点恰好落进材质表顶部的金黄纹样，
+    因而钢、粗制、覆土、烧红等金属刀条都会长出一截黄色刀尾。刀身主体在
+    原始 64×128 材质表的 (x=16, y=64) 一带；横向平铺后仍取第一格的这块
+    2×4 像素色带。这样冷刀尾是对应钢色，烧红材质表又会自然得到相同热色，
+    木／竹材质表也仍会取到各自本色，而不是统一染成黄色。
+    """
+    return (15.0 / (64.0 * TILE_U), 62.0 / 128.0,
+            17.0 / (64.0 * TILE_U), 66.0 / 128.0)
 
 
 # 薄盒 12 三角的顶点索引表（每个面两个三角）

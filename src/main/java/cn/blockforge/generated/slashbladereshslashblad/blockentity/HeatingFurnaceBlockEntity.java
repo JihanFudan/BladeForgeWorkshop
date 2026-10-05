@@ -23,16 +23,27 @@ import net.minecraft.world.phys.BlockHitResult;
  * 可烧：铁锭→灼热铁锭、钢锭→灼热钢锭、融合钢→灼热融合钢、粗制刀条→灼热粗制刀条、
  * 覆土刀条→灼热覆土刀条；未完成的刀条配黏土可直接覆土入炉。
  * 烧好后炉膛滚烫，背包（含快捷栏与副手）里有钳子就能右键夹取。炉口悬浮显示物品并逐渐变亮（客户端渲染器）。
+ *
+ * <p>锻造失败机制：刀条类工件（灼热粗制、灼热覆土）烧红后 5 秒内没夹出来，
+ * 就会过火报废成「灼热的失败的刀条」——炉内颜色由红逐渐转成发光的橙黄。夹出来还是烫手品，
+ * 自然冷却 15 秒或用炼药锅降温后才是「失败的刀条」，再放回熔炉或烧铁炉回烧固定出 3 枚铁锭。
+ * 锭材（铁、钢系、融合钢）不限时。</p>
  */
 public class HeatingFurnaceBlockEntity extends BlockEntity {
     /** 一批烧制耗时（8 秒）。 */
     public static final int HEAT_TICKS = 160;
     /** 一次最多塞进炉膛的数量。 */
     public static final int BATCH_MAX = 5;
+    /** 刀条烧红后允许在炉里停留的宽限（5 秒 = 100 游戏刻），超时过火报废。 */
+    public static final int FAIL_GRACE_TICKS = 100;
+    /** 一枚失败的刀条回烧固定产出的铁锭数。 */
+    public static final int FAILED_BLADE_IRON_YIELD = 3;
 
     private final SimpleContainer inventory = new SimpleContainer(1);
     private long heatStart;
     private boolean done;
+    /** 烧好（done=true）那一刻的游戏时间，刀条的 5 秒报废倒计时从它起算。 */
+    private long doneTime;
 
     public HeatingFurnaceBlockEntity(net.minecraft.world.level.block.entity.BlockEntityType<?> type, BlockPos pos, BlockState state) {
         super(type, pos, state);
@@ -48,6 +59,32 @@ public class HeatingFurnaceBlockEntity extends BlockEntity {
 
     public boolean done() {
         return done;
+    }
+
+    /** 炉口是否已经是过火报废品（灼热的失败的刀条），用于客户端保持橙黄发光。 */
+    public boolean failedStored() {
+        return inventory.getItem(0).is(GeneratedMod.HOT_FAILED_BLADE.get());
+    }
+
+    /** 灼热失败刀条的冷却倒计时进度：炉口染成橙黄发光的程度（0..1）。 */
+    public float overburn(Level level, float partialTick) {
+        ItemStack stored = inventory.getItem(0);
+        if (stored.isEmpty()) {
+            return 0f;
+        }
+        if (stored.is(GeneratedMod.HOT_FAILED_BLADE.get())) {
+            return 1f;
+        }
+        if (done && isBladeWork(stored)) {
+            float t = (float) (level.getGameTime() + partialTick - doneTime) / FAIL_GRACE_TICKS;
+            return Math.clamp(t, 0f, 1f);
+        }
+        return 0f;
+    }
+
+    private static boolean isBladeWork(ItemStack stack) {
+        return stack.is(GeneratedMod.HEATED_CRUDE_BLADE.get())
+                || stack.is(GeneratedMod.HEATED_CLAY_BLADE.get());
     }
 
     /** 渲染器用的 0..1 烧制进度（客户端本地按时间推算，不需要每刻同步）。 */
@@ -79,11 +116,18 @@ public class HeatingFurnaceBlockEntity extends BlockEntity {
         if (stack.is(GeneratedMod.FUSED_STEEL.get())) {
             return GeneratedMod.HEATED_FUSED_STEEL.get();
         }
+        if (stack.is(GeneratedMod.HOT_FAILED_BLADE.get())) {
+            return null;
+        }
         if (stack.is(GeneratedMod.CRUDE_BLADE.get())) {
             return GeneratedMod.HEATED_CRUDE_BLADE.get();
         }
         if (stack.is(GeneratedMod.CLAY_BLADE.get())) {
             return GeneratedMod.HEATED_CLAY_BLADE.get();
+        }
+        // 失败的刀条回炉：每枚固定烧成 3 枚铁锭（数量在 serverTick 中按批次放大）。
+        if (stack.is(GeneratedMod.FAILED_BLADE.get())) {
+            return Items.IRON_INGOT;
         }
         return null;
     }
@@ -98,6 +142,7 @@ public class HeatingFurnaceBlockEntity extends BlockEntity {
         else if (stack.is(GeneratedMod.HEATED_FUSED_STEEL.get())) cold = GeneratedMod.FUSED_STEEL.get();
         else if (stack.is(GeneratedMod.HEATED_CRUDE_BLADE.get())) cold = GeneratedMod.CRUDE_BLADE.get();
         else if (stack.is(GeneratedMod.HEATED_CLAY_BLADE.get())) cold = GeneratedMod.CLAY_BLADE.get();
+        else if (stack.is(GeneratedMod.HOT_FAILED_BLADE.get())) cold = GeneratedMod.FAILED_BLADE.get();
         return new ItemStack(cold, stack.getCount());
     }
 
@@ -109,6 +154,10 @@ public class HeatingFurnaceBlockEntity extends BlockEntity {
     }
 
     public void dropStoredItems(net.minecraft.server.level.ServerLevel level, BlockPos pos) {
+        ItemStack stored = inventory.getItem(0);
+        if (stored.is(GeneratedMod.HOT_FAILED_BLADE.get())) {
+            BladeData.setHotSince(stored, level.getGameTime());
+        }
         net.minecraft.world.Containers.dropContents(level, pos, inventory);
     }
 
@@ -121,14 +170,25 @@ public class HeatingFurnaceBlockEntity extends BlockEntity {
         if (!stored.isEmpty() && done) {
             if (held.is(GeneratedMod.TONGS.get())
                     || cn.blockforge.generated.slashbladereshslashblad.ForgeEvents.hasTongsInInventory(player)) {
-                giveBack(player, inventory.removeItemNoUpdate(0));
+                ItemStack taken = inventory.removeItemNoUpdate(0);
+                if (taken.is(GeneratedMod.HOT_FAILED_BLADE.get())) {
+                    BladeData.setHotSince(taken, level.getGameTime());
+                }
+                giveBack(player, taken);
                 done = false;
                 heatStart = 0;
+                doneTime = 0;
                 level.playSound(null, pos, SoundEvents.FIRE_EXTINGUISH, SoundSource.BLOCKS, 0.7f, 1.3f);
-                tell(player, "用钳子夹出来了！趁热放上锻造铁砧。");
+                if (!taken.is(GeneratedMod.FAILED_BLADE.get())
+                        && !taken.is(GeneratedMod.HOT_FAILED_BLADE.get())) {
+                    tell(player, "用钳子夹出来了！趁热放上锻造铁砧。");
+                }
                 sync();
             } else {
-                tell(player, "炉膛烫得吓人，徒手够不着——把钳子放进背包再右键取件。");
+                String warning = isBladeWork(stored)
+                        ? "，再过 " + Math.max(1, (int) ((FAIL_GRACE_TICKS - (level.getGameTime() - doneTime) + 19) / 20)) + " 秒过火"
+                        : "";
+                tell(player, "炉膛烫手：背包里放钳子，再右键取件" + warning + "。");
             }
             return ItemInteractionResult.SUCCESS;
         }
@@ -146,8 +206,9 @@ public class HeatingFurnaceBlockEntity extends BlockEntity {
                 inventory.setItem(0, clayed);
                 heatStart = level.getGameTime();
                 done = false;
+                doneTime = 0;
                 level.playSound(null, pos, SoundEvents.MUD_PLACE, SoundSource.BLOCKS, 0.8f, 1.0f);
-                tell(player, "黏土已覆面，直接在炉内烧红，约 8 秒后用钳子夹取。");
+                tell(player, "覆土完成，炉内直接烧红，约 8 秒后用钳子夹取。");
                 sync();
                 return ItemInteractionResult.SUCCESS;
             }
@@ -160,6 +221,7 @@ public class HeatingFurnaceBlockEntity extends BlockEntity {
                 inventory.setItem(0, in);
                 heatStart = level.getGameTime();
                 done = false;
+                doneTime = 0;
                 level.playSound(null, pos, SoundEvents.FURNACE_FIRE_CRACKLE, SoundSource.BLOCKS, 0.9f, 1.0f);
                 tell(player, "已放进烧铁炉（一次最多 " + BATCH_MAX + " 个）。盯着炉口，它会一点点烧红。");
                 sync();
@@ -173,11 +235,15 @@ public class HeatingFurnaceBlockEntity extends BlockEntity {
                 tell(player, "它已经烧红了，直接拿去锻造铁砧。");
                 return ItemInteractionResult.SUCCESS;
             }
-            if (held.isEmpty()) {
-                tell(player, "烧铁炉可烧：铁锭、钢锭、低碳钢、高碳钢、融合钢、粗制刀条、覆土刀条；烧好后用钳子夹取。");
+            if (held.is(GeneratedMod.HOT_FAILED_BLADE.get())) {
+                tell(player, "它还烫手：等 15 秒自然冷却，或右键水炼药锅降温。");
                 return ItemInteractionResult.SUCCESS;
             }
-            tell(player, "炉子不收这个。可烧：铁锭、钢锭、低碳钢、高碳钢、融合钢、粗制刀条、覆土刀条。");
+            if (held.isEmpty()) {
+                tell(player, "烧铁炉可烧：铁锭、钢锭、低碳钢、高碳钢、融合钢、粗制刀条、覆土刀条；失败刀条回烧每枚出 3 铁锭。");
+                return ItemInteractionResult.SUCCESS;
+            }
+            tell(player, "炉子不收这个。");
             return ItemInteractionResult.SUCCESS;
         }
         // 四、正在烧
@@ -190,25 +256,57 @@ public class HeatingFurnaceBlockEntity extends BlockEntity {
         return ItemInteractionResult.SUCCESS;
     }
 
-    /** 服务端刻：推进烧制，到点换产物并同步。 */
+    /** 服务端刻：推进烧制，到点换产物；刀条烧红后超过 5 秒没取出就过火报废。 */
     public static void serverTick(Level level, BlockPos pos, BlockState state, HeatingFurnaceBlockEntity be) {
         ItemStack stored = be.inventory.getItem(0);
-        if (stored.isEmpty() || be.done) {
+        if (stored.isEmpty()) {
+            return;
+        }
+        if (be.done) {
+            if (isBladeWork(stored) && level.getGameTime() - be.doneTime >= FAIL_GRACE_TICKS) {
+                be.inventory.setItem(0, new ItemStack(GeneratedMod.HOT_FAILED_BLADE.get(), stored.getCount()));
+                level.playSound(null, pos, SoundEvents.FIRE_EXTINGUISH, SoundSource.BLOCKS, 0.9f, 0.65f);
+                if (level instanceof net.minecraft.server.level.ServerLevel serverLevel) {
+                    serverLevel.sendParticles(net.minecraft.core.particles.ParticleTypes.CAMPFIRE_COSY_SMOKE,
+                            pos.getX() + 0.5, pos.getY() + 0.85, pos.getZ() + 0.5,
+                            18, 0.18, 0.12, 0.18, 0.02);
+                    tellNearby(serverLevel, pos, "炉膛里的刀条过火了：先夹出来等它冷却。");
+                }
+                be.sync();
+            }
             return;
         }
         Item result = heatedResult(stored);
         if (result == null) {
             be.done = true;
+            be.doneTime = level.getGameTime();
             be.sync();
             return;
         }
         if (level.getGameTime() - be.heatStart >= HEAT_TICKS) {
-            ItemStack out = new ItemStack(result, stored.getCount());
-            BladeData.copyRatio(stored, out);
+            int count = stored.getCount();
+            ItemStack out = stored.is(GeneratedMod.FAILED_BLADE.get())
+                    ? new ItemStack(Items.IRON_INGOT, Math.min(64, count * FAILED_BLADE_IRON_YIELD))
+                    : new ItemStack(result, count);
+            if (!stored.is(GeneratedMod.FAILED_BLADE.get())) {
+                BladeData.copyRatio(stored, out);
+            }
             be.inventory.setItem(0, out);
             be.done = true;
+            be.doneTime = level.getGameTime();
             level.playSound(null, pos, SoundEvents.FIRECHARGE_USE, SoundSource.BLOCKS, 0.25f, 1.6f);
+            if (isBladeWork(out) && level instanceof net.minecraft.server.level.ServerLevel serverLevel) {
+                tellNearby(serverLevel, pos, "刀条烧红了！5 秒内用钳子夹出，否则过火报废。");
+            }
             be.sync();
+        }
+    }
+
+    private static void tellNearby(net.minecraft.server.level.ServerLevel level, BlockPos pos, String text) {
+        for (Player player : level.players()) {
+            if (player.distanceToSqr(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5) <= 64.0) {
+                tell(player, text);
+            }
         }
     }
 
@@ -246,6 +344,7 @@ public class HeatingFurnaceBlockEntity extends BlockEntity {
         super.loadAdditional(tag, registries);
         heatStart = tag.getLong("HeatStart");
         done = tag.getBoolean("Done");
+        doneTime = tag.getLong("DoneTime");
         inventory.setItem(0, ItemStack.parseOptional(registries, tag.getCompound("Slot0")));
     }
 
@@ -254,6 +353,7 @@ public class HeatingFurnaceBlockEntity extends BlockEntity {
         super.saveAdditional(tag, registries);
         tag.putLong("HeatStart", heatStart);
         tag.putBoolean("Done", done);
+        tag.putLong("DoneTime", doneTime);
         // 1.21.1 中空物品栈调用 save() 会抛 IllegalStateException（拆方块同步数据时必崩），必须用 saveOptional。
         tag.put("Slot0", inventory.getItem(0).saveOptional(registries));
     }

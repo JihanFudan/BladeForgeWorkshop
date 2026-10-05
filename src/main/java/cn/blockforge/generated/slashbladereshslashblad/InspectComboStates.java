@@ -158,6 +158,8 @@ public final class InspectComboStates {
                         state.getTexture().map(ResourceLocation::toString).orElse("")))
                 .orElse("")
                 .toLowerCase(Locale.ROOT);
+        // 名刀·寒霜：检视动画直接用阎魔（yamato）的那一套
+        if (containsAny(identity, "frost")) return INSPECT_YAMATO.getId();
         if (containsAny(identity, "muramasa")) return INSPECT_MURAMASA.getId();
         // 散华本体（贴图 sange.png / 模型 named/sange/sange，区别于黑狐白狐的 sange/black、sange/white）
         if (containsAny(identity, "sange") && !containsAny(identity, "black", "white")) return INSPECT_SANGE.getId();

@@ -15,6 +15,7 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.neoforge.event.server.ServerStoppedEvent;
 import net.neoforged.neoforge.event.tick.PlayerTickEvent;
 
 /**
@@ -38,11 +39,13 @@ public final class BladeAssembly {
     /** 整刀插入刀鞘、鞘口合拢的时刻。 */
     public static final int SHEATHE_SNAP_TICK = 66;
 
+    /** 组装类型：木偶、竹光、名刀·寒霜。 */
+    public static final int KIND_WOOD = 0, KIND_BAMBOO = 1, KIND_FROST = 2;
     /** 刀镡金属类型（与网络包 StartPayload.metal 一致）。 */
     public static final int METAL_IRON = 0, METAL_GOLD = 1, METAL_COPPER = 2;
 
     /** 玩家 UUID → 进行中的组装会话（仅服务端）。 */
-    private record Session(int entityId, long startTick, boolean bamboo, int metal, Item tsuba,
+    private record Session(int entityId, long startTick, int kind, int metal, Item tsuba,
                            ResourceKey<Level> levelKey) {
     }
 
@@ -67,11 +70,28 @@ public final class BladeAssembly {
         return null;
     }
 
-    /** 背包（含双手）是否备齐刀镡、刀柄、刀鞘各一件。 */
+    /** 背包（含双手）是否备齐木偶/竹光的刀镡、刀柄、刀鞘各一件。 */
     public static boolean hasMaterials(Player player, boolean bamboo) {
         return findTsuba(player, bamboo) != null
                 && countInInventory(player, GeneratedMod.BLADE_HANDLE.get()) > 0
                 && countInInventory(player, GeneratedMod.BLADE_SHEATH.get()) > 0;
+    }
+
+    /** 寒霜需要任意纯金属刀镡、刀柄、刀鞘、雪块各一件。 */
+    public static boolean hasFrostMaterials(Player player) {
+        return findFrostTsuba(player) != null
+                && countInInventory(player, GeneratedMod.BLADE_HANDLE.get()) > 0
+                && countInInventory(player, GeneratedMod.BLADE_SHEATH.get()) > 0
+                && countInInventory(player, net.minecraft.world.item.Items.SNOW_BLOCK) > 0;
+    }
+
+    /** 寒霜使用金＞铜＞铁的纯金属刀镡选择顺序。 */
+    public static Item findFrostTsuba(Player player) {
+        for (Item item : new Item[]{GeneratedMod.TSUBA_PURE_GOLD.get(), GeneratedMod.TSUBA_PURE_COPPER.get(),
+                GeneratedMod.TSUBA_PURE_IRON.get()}) {
+            if (countInInventory(player, item) > 0) return item;
+        }
+        return null;
     }
 
     /** 服务端入口：复核材料 → 消耗 → 登记会话并广播动画。返回 false 表示未开始。 */
@@ -92,12 +112,43 @@ public final class BladeAssembly {
         heldBlank.shrink(1);
         long now = player.level().getGameTime();
         ACTIVE.put(player.getUUID(),
-                new Session(player.getId(), now, bamboo, metal, tsuba, player.level().dimension()));
-        BladeAssemblyNetwork.broadcastStart(player, bamboo, metal, now);
+                new Session(player.getId(), now, bamboo ? KIND_BAMBOO : KIND_WOOD, metal, tsuba,
+                        player.level().dimension()));
+        BladeAssemblyNetwork.broadcastStart(player, bamboo ? KIND_BAMBOO : KIND_WOOD, metal, now);
         Level level = player.level();
         level.playSound(null, player, bamboo ? InspectSounds.SPIN_BAMBOO.get() : InspectSounds.SPIN_WOOD.get(),
                 SoundSource.PLAYERS, 0.9f, bamboo ? 1.25f : 0.85f);
         return true;
+    }
+
+    /** 服务端入口：成品刀条右键组装名刀·寒霜。 */
+    public static boolean tryStartFrost(ServerPlayer player, ItemStack heldBlade) {
+        if (isBusy(player)) {
+            tell(player, "msg." + GeneratedMod.MOD_ID + ".assembly_busy");
+            return false;
+        }
+        if (!hasFrostMaterials(player)) {
+            tell(player, "msg." + GeneratedMod.MOD_ID + ".assembly_missing_materials");
+            return false;
+        }
+        Item tsuba = findFrostTsuba(player);
+        int metal = metalOfPure(tsuba);
+        consumeOne(player, tsuba);
+        consumeOne(player, GeneratedMod.BLADE_HANDLE.get());
+        consumeOne(player, GeneratedMod.BLADE_SHEATH.get());
+        consumeOne(player, net.minecraft.world.item.Items.SNOW_BLOCK);
+        heldBlade.shrink(1);
+        long now = player.level().getGameTime();
+        ACTIVE.put(player.getUUID(), new Session(player.getId(), now, KIND_FROST, metal, tsuba,
+                player.level().dimension()));
+        BladeAssemblyNetwork.broadcastStart(player, KIND_FROST, metal, now);
+        player.level().playSound(null, player, InspectSounds.SPIN_WOOD.get(), SoundSource.PLAYERS, 0.9f, 1.55f);
+        return true;
+    }
+
+    @SubscribeEvent
+    public static void onServerStopped(ServerStoppedEvent event) {
+        ACTIVE.clear();
     }
 
     @SubscribeEvent
@@ -126,17 +177,37 @@ public final class BladeAssembly {
         }
     }
 
-    /** 组装完成：产物数值与旧刀剑制作台内置木刀／竹刀配方一致，放进背包。 */
+    /** 组装完成：寒霜使用 named_blades 定义，木偶/竹光沿用原有基础刀。 */
     private static void complete(ServerPlayer player, Session session) {
-        ItemStack definition = BladeData.sword(session.bamboo() ? BladeData.SLASHBLADE_BAMBOO : BladeData.SLASHBLADE_WOOD);
-        ItemStack out = BladeData.sword(session.bamboo() ? BladeData.SLASHBLADE_BAMBOO : BladeData.SLASHBLADE_WOOD);
+        if (session.kind() == KIND_FROST) {
+            ItemStack out = BladeData.frostBlade(player.level().registryAccess());
+            if (out.isEmpty()) {
+                giveBack(player, new ItemStack(session.tsuba()));
+                giveBack(player, new ItemStack(GeneratedMod.BLADE_HANDLE.get()));
+                giveBack(player, new ItemStack(GeneratedMod.BLADE_SHEATH.get()));
+                giveBack(player, new ItemStack(net.minecraft.world.item.Items.SNOW_BLOCK));
+                giveBack(player, new ItemStack(GeneratedMod.QUENCHED_BLADE.get()));
+                tell(player, "msg." + GeneratedMod.MOD_ID + ".assembly_failed");
+                return;
+            }
+            BladeData.markBlade(out, 0, 0, guardName(session.metal()));
+            // 自带附魔（力量 V · 灵魂疾行 II · 荆棘 III）现在由 named_blades/frost.json
+            // 的 enchantments 提供，与其他妖刀同一机制，在 frostBlade() 内已挂好。
+            player.getInventory().placeItemBackInInventory(out);
+            tell(player, "msg." + GeneratedMod.MOD_ID + ".assembly_done_frost");
+            player.level().playSound(null, player, SoundEvents.SNOW_BREAK, SoundSource.PLAYERS, 0.8f, 1.35f);
+            return;
+        }
+        boolean bamboo = session.kind() == KIND_BAMBOO;
+        ItemStack definition = BladeData.sword(bamboo ? BladeData.SLASHBLADE_BAMBOO : BladeData.SLASHBLADE_WOOD);
+        ItemStack out = BladeData.sword(bamboo ? BladeData.SLASHBLADE_BAMBOO : BladeData.SLASHBLADE_WOOD);
         if (out.isEmpty()) {
             // 前置缺失的兜底：把刚消耗的材料原样退回，绝不静默吞物品。
             giveBack(player, new ItemStack(session.tsuba()));
             giveBack(player, new ItemStack(GeneratedMod.BLADE_HANDLE.get()));
             giveBack(player, new ItemStack(GeneratedMod.BLADE_SHEATH.get()));
-            giveBack(player, new ItemStack(session.bamboo()
-                    ? GeneratedMod.BAMBOO_BLADE_BLANK.get() : GeneratedMod.WOODEN_BLADE_BLANK.get()));
+            giveBack(player, new ItemStack(bamboo ? GeneratedMod.BAMBOO_BLADE_BLANK.get()
+                    : GeneratedMod.WOODEN_BLADE_BLANK.get()));
             tell(player, "msg." + GeneratedMod.MOD_ID + ".assembly_failed");
             return;
         }
@@ -144,15 +215,15 @@ public final class BladeAssembly {
             case METAL_GOLD -> 2;
             case METAL_COPPER -> 1;
             default -> 0;
-        } + BladeData.ratioAttackBonus(ItemStack.EMPTY);
+        };
         int durability = switch (session.metal()) {
             case METAL_GOLD, METAL_COPPER -> 1;
             default -> 5;
-        } + BladeData.ratioDurabilityBonus(ItemStack.EMPTY);
-        BladeData.markCompatibleBlade(out, attack, durability, guardName(session.metal()), session.bamboo());
+        };
+        BladeData.markCompatibleBlade(out, attack, durability, guardName(session.metal()), bamboo);
         BladeData.rememberDefinition(out, definition);
         player.getInventory().placeItemBackInInventory(out);
-        tell(player, "msg." + GeneratedMod.MOD_ID + (session.bamboo() ? ".assembly_done_bamboo" : ".assembly_done_wood"));
+        tell(player, "msg." + GeneratedMod.MOD_ID + (bamboo ? ".assembly_done_bamboo" : ".assembly_done_wood"));
         player.level().playSound(null, player, SoundEvents.SMITHING_TABLE_USE, SoundSource.PLAYERS, 0.8f, 1.2f);
     }
 
@@ -160,6 +231,12 @@ public final class BladeAssembly {
     private static int metalOf(Item tsuba, boolean bamboo) {
         if (tsuba == (bamboo ? GeneratedMod.TSUBA_BAMBOO_GOLD.get() : GeneratedMod.TSUBA_WOOD_GOLD.get())) return METAL_GOLD;
         if (tsuba == (bamboo ? GeneratedMod.TSUBA_BAMBOO_COPPER.get() : GeneratedMod.TSUBA_WOOD_COPPER.get())) return METAL_COPPER;
+        return METAL_IRON;
+    }
+
+    private static int metalOfPure(Item tsuba) {
+        if (tsuba == GeneratedMod.TSUBA_PURE_GOLD.get()) return METAL_GOLD;
+        if (tsuba == GeneratedMod.TSUBA_PURE_COPPER.get()) return METAL_COPPER;
         return METAL_IRON;
     }
 
@@ -174,8 +251,8 @@ public final class BladeAssembly {
 
     private static void knock(ServerPlayer player, Session session, float pitch) {
         player.level().playSound(null, player,
-                session.bamboo() ? InspectSounds.KNOCK_BAMBOO.get() : InspectSounds.KNOCK_WOOD.get(),
-                SoundSource.PLAYERS, 1.0f, (session.bamboo() ? 1.25f : 0.85f) * pitch);
+                session.kind() == KIND_BAMBOO ? InspectSounds.KNOCK_BAMBOO.get() : InspectSounds.KNOCK_WOOD.get(),
+                SoundSource.PLAYERS, 1.0f, (session.kind() == KIND_BAMBOO ? 1.25f : 0.85f) * pitch);
     }
 
     private static int countInInventory(Player player, Item item) {

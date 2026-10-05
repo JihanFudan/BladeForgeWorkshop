@@ -7,9 +7,12 @@ import cn.blockforge.generated.slashbladereshslashblad.block.TsubaWorkbenchBlock
 import cn.blockforge.generated.slashbladereshslashblad.blockentity.ForgeWorkbenchBlockEntity;
 import cn.blockforge.generated.slashbladereshslashblad.blockentity.BladeWorkbenchBlockEntity;
 import cn.blockforge.generated.slashbladereshslashblad.blockentity.HeatingFurnaceBlockEntity;
+import cn.blockforge.generated.slashbladereshslashblad.item.FailedBladeItem;
 import cn.blockforge.generated.slashbladereshslashblad.item.ForgingToolItem;
 import cn.blockforge.generated.slashbladereshslashblad.item.GuideBookItem;
 import cn.blockforge.generated.slashbladereshslashblad.item.HotBladeItem;
+import cn.blockforge.generated.slashbladereshslashblad.item.HotFailedBladeItem;
+import cn.blockforge.generated.slashbladereshslashblad.item.QuenchedBladeItem;
 import cn.blockforge.generated.slashbladereshslashblad.item.RatioItem;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
@@ -76,7 +79,13 @@ public final class GeneratedMod {
     public static final DeferredItem<HotBladeItem> HOT_BLADE = ITEMS.registerItem("hot_blade",
             props -> new HotBladeItem(props.stacksTo(1)
                     .attributes(cn.blockforge.generated.slashbladereshslashblad.item.HotMetal.attackModifier())));
-    public static final DeferredItem<Item> QUENCHED_BLADE = ratio("quenched_blade");
+    public static final DeferredItem<Item> QUENCHED_BLADE = ITEMS.registerItem("quenched_blade",
+            props -> new QuenchedBladeItem(props.stacksTo(1)));
+    // 失败的刀条：刀条类工件在烧铁炉烧好后超过 5 秒没取出，直接过火报废（见 HeatingFurnaceBlockEntity）。
+    public static final DeferredItem<Item> FAILED_BLADE = ITEMS.registerItem("failed_blade", FailedBladeItem::new);
+    public static final DeferredItem<HotFailedBladeItem> HOT_FAILED_BLADE = ITEMS.registerItem("hot_failed_blade",
+            props -> new HotFailedBladeItem(props.stacksTo(1).attributes(
+                    cn.blockforge.generated.slashbladereshslashblad.item.HotMetal.attackModifier())));
 
     /* ---------------- 刀镡 ---------------- */
     public static final DeferredItem<Item> TSUBA_WOOD_IRON = item("tsuba_wood_iron");
@@ -181,6 +190,8 @@ public final class GeneratedMod {
                         output.accept(HEATED_CLAY_BLADE.get());
                         output.accept(HOT_BLADE.get());
                         output.accept(QUENCHED_BLADE.get());
+                        output.accept(FAILED_BLADE.get());
+                        output.accept(HOT_FAILED_BLADE.get());
                         output.accept(WOODEN_ROUGH.get());
                         output.accept(BAMBOO_ROUGH.get());
                         output.accept(WOODEN_BLADE_BLANK.get());

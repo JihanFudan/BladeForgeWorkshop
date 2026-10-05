@@ -13,7 +13,8 @@ import net.minecraft.world.level.Level;
 
 /**
  * 烧铁炉显示：炉口悬浮画着正在烧的物品。
- * 按烧制进度连续染红同一模型，同时提高方块光照；完成后保持相同外观。
+ * 按烧制进度连续染红同一模型，同时提高方块光照；刀条烧好后若一直不夹出，
+ * 颜色会在 5 秒宽限里从暗红渐变成发光的橙黄（过度动画），到时即过火报废。
  */
 public class HeatingFurnaceRenderer implements BlockEntityRenderer<HeatingFurnaceBlockEntity> {
     public HeatingFurnaceRenderer(BlockEntityRendererProvider.Context context) {
@@ -30,12 +31,19 @@ public class HeatingFurnaceRenderer implements BlockEntityRenderer<HeatingFurnac
         if (stored.isEmpty()) {
             return;
         }
-        float heat = be.heat(level, partialTick);
+        float overburn = be.overburn(level, partialTick);
+        float heat = be.failedStored() ? Math.max(0.15f, overburn) : be.heat(level, partialTick);
+        if (overburn > 0f) {
+            heat = 1f;
+        }
         ItemStack display = HeatingFurnaceBlockEntity.coldDisplay(stored);
         int blockLight = combinedLight >> 4 & 15;
         int skyLight = combinedLight >> 20 & 15;
-        int light = LightTexture.pack(Math.round(blockLight + (15 - blockLight) * heat), skyLight);
-        MultiBufferSource tinted = HeatTint.wrap(bufferSource, heat);
+        // 橙黄阶段让亮度轻微脉动，看起来像在发光的炉温。
+        float glow = Math.max(heat, overburn * (0.92f + 0.08f * (float) Math.sin(
+                (level.getGameTime() + partialTick) * 0.35)));
+        int light = LightTexture.pack(Math.round(blockLight + (15 - blockLight) * glow), skyLight);
+        MultiBufferSource tinted = HeatTint.wrap(bufferSource, heat, overburn);
         poseStack.pushPose();
         poseStack.translate(0.5, 0, 0.5);
         float rotation = switch (be.getBlockState().getValue(

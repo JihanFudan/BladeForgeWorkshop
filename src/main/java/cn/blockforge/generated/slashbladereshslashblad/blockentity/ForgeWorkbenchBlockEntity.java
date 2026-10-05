@@ -118,7 +118,7 @@ public class ForgeWorkbenchBlockEntity extends BlockEntity {
             bambooBase = held.is(Items.BAMBOO_PLANKS);
             held.shrink(1);
             stage = 1;
-            tell(player, "木材已固定。下一步：使用切割刀切出刀鞘粗坯。");
+            tell(player, "木材已固定。下一步：切割刀切出刀鞘粗坯。");
             workEffect(level, pos, bambooBase ? Kind.BAMBOO : Kind.WOOD, false);
             sync();
             return ItemInteractionResult.SUCCESS;
@@ -132,7 +132,7 @@ public class ForgeWorkbenchBlockEntity extends BlockEntity {
                     : inventory.getItem(0).is(Items.COPPER_INGOT) ? "copper" : "iron";
             held.shrink(1);
             stage = 6;
-            tell(player, "金属锭已摆上制作台。下一步：使用雕刻凿锻打成型。");
+            tell(player, "金属锭已摆上。下一步：雕刻凿锻打成型。");
             workEffect(level, pos, Kind.METAL, false);
             sync();
             return ItemInteractionResult.SUCCESS;
@@ -162,7 +162,7 @@ public class ForgeWorkbenchBlockEntity extends BlockEntity {
             inventory.setItem(0, new ItemStack(GeneratedMod.BLADE_SHEATH.get()));
             toolDisplay = held.copyWithCount(1);
             stage = 2;
-            tell(player, "第一刀切出刀鞘粗坯！下一步：使用雕刻凿雕出刀柄与刀镡的完整样貌。");
+            tell(player, "第一刀切出刀鞘粗坯！下一步：用雕刻凿雕出刀柄与刀镡。");
             workEffect(level, pos, bambooBase ? Kind.BAMBOO : Kind.WOOD, false);
             sync();
             return ItemInteractionResult.SUCCESS;
@@ -171,7 +171,7 @@ public class ForgeWorkbenchBlockEntity extends BlockEntity {
             inventory.setItem(1, new ItemStack(GeneratedMod.BLADE_HANDLE.get()));
             toolDisplay = held.copyWithCount(1);
             stage = 3;
-            tell(player, "刀柄与刀镡轮廓已雕刻完整。放入铁锭、金锭或铜锭选择刀镡材质。");
+            tell(player, "轮廓雕好了。放铁、金或铜锭选刀镡材质。");
             workEffect(level, pos, bambooBase ? Kind.BAMBOO : Kind.WOOD, false);
             sync();
             return ItemInteractionResult.SUCCESS;
@@ -196,7 +196,7 @@ public class ForgeWorkbenchBlockEntity extends BlockEntity {
             inventory.setItem(3, ItemStack.EMPTY);
             toolDisplay = held.copyWithCount(1);
             stage = 5;
-            tell(player, "刀镡完成！木刀条／竹刀条手持右键就能现场组装成木偶或竹光，名刀才需要带成品刀条去刀剑制作台。");
+            tell(player, "刀镡完成！木／竹刀条手持右键即可现场组装木偶或竹光。");
             workEffect(level, pos, Kind.METAL, true);
             sync();
             return ItemInteractionResult.SUCCESS;
@@ -211,7 +211,7 @@ public class ForgeWorkbenchBlockEntity extends BlockEntity {
             bambooBase = false;
             guardMaterial = "";
             pureMetal = "";
-            tell(player, "刀镡、刀柄、刀鞘已取出。制作台已清空，可以开始下一件。");
+            tell(player, "刀镡、刀柄、刀鞘已取出，可以开始下一件。");
             sync();
             return ItemInteractionResult.SUCCESS;
         }
@@ -247,8 +247,8 @@ public class ForgeWorkbenchBlockEntity extends BlockEntity {
                 tell(player, "铁砧上的材料已取出。");
                 sync();
             } else {
-                tell(player, "锻造铁砧：煤炭锤成碳粉；灼热钢系锭材共 5 枚（钢/低碳钢/高碳钢可混放）锤成融合钢；"
-                        + "单枚灼热铁锭炼成钢锭；烧红工件可继续锻打；刀剑配耀魂材料可强化并恢复耐久。");
+                tell(player, "锻造铁砧：煤炭锤成碳粉；灼热铁锭炼成钢锭；5 枚灼热钢（可混放）锤成融合钢；"
+                        + "烧红工件继续锻打；刀剑配耀魂材料可强化修复。");
             }
             return ItemInteractionResult.SUCCESS;
         }
@@ -273,11 +273,11 @@ public class ForgeWorkbenchBlockEntity extends BlockEntity {
         int grade = fusionGrade(held);
         // 刀剑升级、热工件和锭材配比三种操作互斥，防止材料混入别的工序。
         if ((grade >= 0 || held.is(GeneratedMod.HEATED_IRON.get())) && !inventory.getItem(0).isEmpty()) {
-            tell(player, "先取出或完成当前工件，再放灼热锭材。");
+            tell(player, "先完成当前工件，再放灼热锭材。");
             return ItemInteractionResult.SUCCESS;
         }
         if ((isHeatedWork(held) || BladeData.isSlashBlade(held)) && (fusionCount() > 0 || ironCount() > 0)) {
-            tell(player, "先完成或取出锭材，再放刀剑或工件。");
+            tell(player, "先取出锭材，再放刀剑或工件。");
             return ItemInteractionResult.SUCCESS;
         }
         // 放灼热钢系锭材（融合槽）：三种钢按种类各堆一格，合计凑满 5 枚即可混熔。
@@ -323,7 +323,7 @@ public class ForgeWorkbenchBlockEntity extends BlockEntity {
         if (BladeData.isSlashBlade(held) && inventory.getItem(0).isEmpty()) {
             inventory.setItem(0, held.copyWithCount(1));
             held.shrink(1);
-            tell(player, "刀剑已放上铁砧。放入耀魂材料后用锻造锤锤击可提升伤害。");
+            tell(player, "刀剑已上砧。放耀魂材料后用锻造锤锤击提升伤害。");
             sync();
             return ItemInteractionResult.SUCCESS;
         }
@@ -332,7 +332,7 @@ public class ForgeWorkbenchBlockEntity extends BlockEntity {
                 if (inventory.getItem(3).isEmpty()) {
                     inventory.setItem(3, held.copyWithCount(1));
                     held.shrink(1);
-                    tell(player, "耀魂材料已放入。使用锻造锤将它吸收入刀身。");
+                    tell(player, "耀魂材料已放入。使用锻造锤将它吸收入刀身（" + refineRiskText(inventory.getItem(0)) + "）。");
                     sync();
                 } else {
                     tell(player, "耀魂材料槽已占用，请先用锻造锤吸收当前材料。");
@@ -344,7 +344,7 @@ public class ForgeWorkbenchBlockEntity extends BlockEntity {
         }
         // 冷锭需要先加热
         if (isColdSteel(held) || held.is(Items.IRON_INGOT)) {
-            tell(player, "冷锭不能直接上砧。先放进烧铁炉烧成灼热锭材（烧红后要用钳子夹取）。");
+            tell(player, "冷锭不能直接上砧：先用烧铁炉烧红，再用钳子夹取。");
             return ItemInteractionResult.SUCCESS;
         }
         tell(player, "铁砧不认识这件材料。金属刀条请从烧铁炉的灼热锭材开始。");
@@ -396,16 +396,30 @@ public class ForgeWorkbenchBlockEntity extends BlockEntity {
             finish(level, pos, player, Kind.METAL);
             return;
         }
-        // 刀剑 + 耀魂 → 吸收升级
+        // 刀剑 + 耀魂 → 吸收升级：成功使下一锤失手率 +1%，失败使下一锤 -1%，封顶 50%。
         if (BladeData.isSlashBlade(work) && BladeData.isProudSoul(inventory.getItem(3))) {
             ItemStack soul = inventory.getItem(3);
             int soulValue = BladeData.proudSoulValue(soul);
             int kills = BladeData.proudSoulKills(soul);
             int repairAmount = BladeData.proudSoulDurability(soul);
-            BladeData.addSoulFold(work, soulValue, kills, repairAmount);
+            boolean failed = level.random.nextDouble() < BladeData.soulFoldFailChance(work);
+            if (failed && repairAmount > 0) {
+                repairAmount = Math.max(1, repairAmount / 2);
+            }
+            int applied = BladeData.addSoulFold(work, soulValue, kills, repairAmount, failed);
+            double nextChance = BladeData.adjustSoulFoldFailChance(work, failed);
             inventory.setItem(3, ItemStack.EMPTY);
-            tell(player, "耀魂材料被锤入刀身：伤害增加，耀魂 +" + soulValue + "，击杀数 +" + kills + "，恢复耐久 " + repairAmount + " 点（最多恢复至满耐久）。");
-            finish(level, pos, player, Kind.METAL);
+            if (failed) {
+                tell(player, "铛——锻造失手了！这一锤只吃进一半耀魂（+" + Math.max(0, soulValue) / 2
+                        + "），不加伤害与杀敌，耐久 +" + applied + "；下一锤失手率降至 "
+                        + Math.round(nextChance * 100.0) + "% 。");
+                strikeMiss(level, pos, player);
+            } else {
+                tell(player, "耀魂吸收成功：耀魂 +" + soulValue + "，击杀 +" + kills
+                        + "，耐久 +" + applied + "；下一锤失手率升至 "
+                        + Math.round(nextChance * 100.0) + "% 。");
+                finish(level, pos, player, Kind.METAL);
+            }
             return;
         }
         // 单枚灼热铁锭 → 钢锭（炼钢）
@@ -444,10 +458,10 @@ public class ForgeWorkbenchBlockEntity extends BlockEntity {
             return;
         }
         if (fusionCount() > 0) {
-            tell(player, "融合需要凑满 5 枚灼热钢（钢/低碳钢/高碳钢可混放）。当前 " + fusionCount() + "/5（"
+            tell(player, "需凑满 5 枚灼热钢（可混放）。当前 " + fusionCount() + "/5（"
                     + fusionSummary() + "），按当前配比 " + bonusText(fusionCounts()) + "。");
         } else if (work.isEmpty()) {
-            tell(player, "铁砧是空的。放煤炭（锤成碳粉）、5 枚灼热钢（三钢可混放，融合）或烧红的工件，再动锤。");
+            tell(player, "铁砧是空的：放煤炭、5 枚灼热钢（可混放）或烧红的工件，再动锤。");
         } else {
             tell(player, workHint(work));
         }
@@ -460,6 +474,25 @@ public class ForgeWorkbenchBlockEntity extends BlockEntity {
         player.swing(InteractionHand.MAIN_HAND, true);
         workEffect(level, pos, kind, true);
         sync();
+    }
+
+    /** 锻造失手：低沉错音与灰烟，不产生成功工序的亮色粒子。 */
+    private void strikeMiss(Level level, BlockPos pos, Player player) {
+        lastHit = level.getGameTime();
+        player.swing(InteractionHand.MAIN_HAND, true);
+        level.playSound(null, pos, SoundEvents.ANVIL_USE, SoundSource.BLOCKS, 1.0f, 0.5f);
+        if (level instanceof net.minecraft.server.level.ServerLevel serverLevel) {
+            serverLevel.sendParticles(ParticleTypes.SMOKE,
+                    pos.getX() + 0.5, pos.getY() + 1.05, pos.getZ() + 0.5,
+                    10, 0.18, 0.08, 0.18, 0.01);
+        }
+        sync();
+    }
+
+    /** 当前这一锤的失手风险描述；结果会让下一锤概率上下变化 1%。 */
+    private static String refineRiskText(ItemStack blade) {
+        double chance = BladeData.soulFoldFailChance(blade);
+        return chance <= 0.0 ? "这一锤不会失败" : "这一锤有 " + Math.round(chance * 100.0) + "% 概率失败";
     }
 
     private void addHeated(int slot, ItemStack held) {

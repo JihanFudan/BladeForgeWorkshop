@@ -24,6 +24,8 @@ public final class UltimateJudgementCutNetwork {
                 UltimateJudgementCutNetwork::handleStart);
         registrar.playToClient(CancelPayload.TYPE, CancelPayload.STREAM_CODEC,
                 UltimateJudgementCutNetwork::handleCancel);
+        registrar.playToClient(CooldownPayload.TYPE, CooldownPayload.STREAM_CODEC,
+                UltimateJudgementCutNetwork::handleCooldown);
     }
 
     private static void handleTrigger(TriggerPayload payload, IPayloadContext context) {
@@ -40,11 +42,18 @@ public final class UltimateJudgementCutNetwork {
         context.enqueueWork(() -> UltimateJudgementCutClient.cancel(payload.casterEntityId()));
     }
 
+    private static void handleCooldown(CooldownPayload payload, IPayloadContext context) {
+        context.enqueueWork(() -> UltimateJudgementCutClient.cooldown(payload.remainingTicks()));
+    }
+
     public static void requestStart() {
         PacketDistributor.sendToServer(TriggerPayload.INSTANCE);
     }
 
-    /** 检视打断 SSA 时通知所有观看者立即撤掉演出。 */
+    public static void sendCooldown(ServerPlayer player, int remainingTicks) {
+        PacketDistributor.sendToPlayer(player, new CooldownPayload(remainingTicks));
+    }
+
     public static void broadcastCancel(ServerPlayer caster) {
         CancelPayload payload = new CancelPayload(caster.getId());
         PacketDistributor.sendToPlayer(caster, payload);
@@ -57,8 +66,9 @@ public final class UltimateJudgementCutNetwork {
         if (caster == null || !(caster.level() instanceof net.minecraft.server.level.ServerLevel level)) return;
         StartPayload payload = new StartPayload(caster.getId(), session.casterId(), session.center(),
                 session.yaw(), caster.level().getGameTime());
-        PacketDistributor.sendToPlayersNear(level, null, session.center().x, session.center().y,
-                session.center().z, UltimateJudgementCut.RADIUS + 32.0, payload);
+        for (ServerPlayer viewer : level.players()) {
+            PacketDistributor.sendToPlayer(viewer, payload);
+        }
     }
 
     public record TriggerPayload() implements CustomPacketPayload {
@@ -79,6 +89,19 @@ public final class UltimateJudgementCutNetwork {
         public static final StreamCodec<RegistryFriendlyByteBuf, CancelPayload> STREAM_CODEC =
                 StreamCodec.of((buffer, payload) -> buffer.writeVarInt(payload.casterEntityId()),
                         buffer -> new CancelPayload(buffer.readVarInt()));
+
+        @Override
+        public Type<? extends CustomPacketPayload> type() {
+            return TYPE;
+        }
+    }
+
+    public record CooldownPayload(int remainingTicks) implements CustomPacketPayload {
+        public static final Type<CooldownPayload> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(
+                GeneratedMod.MOD_ID, "ultimate_judgement_cut_cooldown"));
+        public static final StreamCodec<RegistryFriendlyByteBuf, CooldownPayload> STREAM_CODEC = StreamCodec.of(
+                (buffer, payload) -> buffer.writeVarInt(payload.remainingTicks()),
+                buffer -> new CooldownPayload(buffer.readVarInt()));
 
         @Override
         public Type<? extends CustomPacketPayload> type() {

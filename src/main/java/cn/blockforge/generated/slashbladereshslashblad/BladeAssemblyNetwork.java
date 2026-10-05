@@ -29,24 +29,24 @@ public final class BladeAssemblyNetwork {
                 .BladeAssemblyClient.start(payload));
     }
 
-    public static void broadcastStart(ServerPlayer caster, boolean bamboo, int metal, long startGameTime) {
+    public static void broadcastStart(ServerPlayer caster, int kind, int metal, long startGameTime) {
         PacketDistributor.sendToPlayersTrackingEntityAndSelf(caster,
-                new StartPayload(caster.getId(), bamboo, metal, startGameTime));
+                new StartPayload(caster.getId(), kind, metal, startGameTime));
     }
 
-    /** metal：0 铁 / 1 金 / 2 铜（与 BladeAssembly 的 METAL_* 常量一致），客户端据此给刀镡染色。 */
-    public record StartPayload(int entityId, boolean bamboo, int metal, long startGameTime)
+    /** kind：0 木偶 / 1 竹光 / 2 寒霜；metal：0 铁 / 1 金 / 2 铜。 */
+    public record StartPayload(int entityId, int kind, int metal, long startGameTime)
             implements CustomPacketPayload {
         public static final Type<StartPayload> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(
                 GeneratedMod.MOD_ID, "blade_assembly_start"));
         public static final StreamCodec<RegistryFriendlyByteBuf, StartPayload> STREAM_CODEC =
                 StreamCodec.of((buffer, payload) -> {
                     buffer.writeVarInt(payload.entityId());
-                    buffer.writeBoolean(payload.bamboo());
+                    buffer.writeVarInt(payload.kind());
                     buffer.writeVarInt(payload.metal());
                     buffer.writeVarLong(payload.startGameTime());
                 },
-                        buffer -> new StartPayload(buffer.readVarInt(), buffer.readBoolean(),
+                        buffer -> new StartPayload(buffer.readVarInt(), buffer.readVarInt(),
                                 buffer.readVarInt(), buffer.readVarLong()));
 
         @Override

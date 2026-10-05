@@ -41,10 +41,8 @@ public class HotBladeItem extends RatioItem implements HotMetal.Hot {
         long since = BladeData.hotSince(stack);
         long age = context == null ? 0 : context.level() == null ? 0 : context.level().getGameTime() - since;
         long left = Math.max(0, (COOL_TICKS - age) / 20);
-        tooltip.add(Component.literal("烫手！右键有水炼药锅可急速降温"));
-        tooltip.add(Component.literal("自然冷却还需约 " + left + " 秒"));
-        tooltip.add(Component.literal("烧红：攻击 +1，命中点燃目标"));
-        tooltip.add(Component.literal("背包里没放钳子时，每秒烫掉自己 1 滴血"));
+        tooltip.add(Component.literal("右键水炼药锅降温，自然冷却还需约 " + left + " 秒"));
+        tooltip.add(Component.literal("没钳子时每秒烫 1 滴血"));
     }
 
     @Override

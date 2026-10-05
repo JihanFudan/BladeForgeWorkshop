@@ -40,7 +40,7 @@ public final class BladeAssemblyClient {
     private static final class Active {
         final int entityId;
         final long startGameTime;
-        final boolean bamboo;
+        final int kind;
         final int metal;
         int snapStage;
         boolean finaleBurst;
@@ -48,7 +48,7 @@ public final class BladeAssemblyClient {
         Active(StartPayload payload) {
             this.entityId = payload.entityId();
             this.startGameTime = payload.startGameTime();
-            this.bamboo = payload.bamboo();
+            this.kind = payload.kind();
             this.metal = payload.metal();
         }
     }
@@ -117,7 +117,9 @@ public final class BladeAssemblyClient {
     private static final float STAGE_TILT_Y = 12.0f;
 
     private static void drawStage(Minecraft mc, Active active, RenderLevelStageEvent event, Player player, float age) {
-        if (!AssemblyMotion.available() || !AssemblyStageModel.available()) return;
+        boolean frost = active.kind == BladeAssembly.KIND_FROST;
+        if (!AssemblyMotion.available()) return;
+        if (frost ? !AssemblyStageModel.frostAvailable() : !AssemblyStageModel.available()) return;
         Vec3 anchor = stageAnchor(player, event.getPartialTick().getGameTimeDeltaPartialTick(false));
         Camera camera = event.getCamera();
         Vec3 camPos = camera.getPosition();
@@ -148,11 +150,22 @@ public final class BladeAssemblyClient {
             spawnFinaleSparks(mc, player, anchor);
         }
 
-        ResourceLocation sheet = active.bamboo ? AssemblyStageModel.TEX_BAMBOO : AssemblyStageModel.TEX_WOOD;
+        ResourceLocation sheet = active.kind == BladeAssembly.KIND_BAMBOO
+                ? AssemblyStageModel.TEX_BAMBOO : AssemblyStageModel.TEX_WOOD;
         AssemblyMotion.Pose blank = AssemblyMotion.sample("blade_blank", frame);
         AssemblyMotion.Pose handle = AssemblyMotion.sample("handle", frame);
         AssemblyMotion.Pose tsuba = AssemblyMotion.sample("tsuba", frame);
         AssemblyMotion.Pose sheath = AssemblyMotion.sample("sheath", frame);
+
+        // 名刀·寒霜用自己的混合网格与材质（寒霜刀身 + 付丧刀鞘），其余刀用木偶/竹光材质。
+        if (frost) {
+            drawFrostPart(pose, STAGE_BUFFERS, "blade_blank", blank);
+            drawFrostPart(pose, STAGE_BUFFERS, "handle", handle);
+            drawFrostPart(pose, STAGE_BUFFERS, "tsuba", tsuba);
+            drawFrostPart(pose, STAGE_BUFFERS, "sheath", sheath);
+            pose.popPose();
+            return;
+        }
 
         // 由远及近：刀条 → 刀柄 → 刀镡（盘最厚，扣在茎上）→ 刀鞘（最后罩住整条刀身）。
         drawPart(pose, STAGE_BUFFERS, "blade_blank", blank, sheet, 1.0f, 1.0f, 1.0f);
@@ -175,6 +188,17 @@ public final class BladeAssemblyClient {
         pose.translate(p.x(), p.y(), -p.z());
         pose.mulPose(Axis.ZP.rotationDegrees(p.roll()));
         AssemblyStageModel.render(part, pose, buffers, sheet, tintR, tintG, tintB, LightTexture.FULL_BRIGHT);
+        pose.popPose();
+    }
+
+    /** 寒霜专用：部件网格与材质都来自这把刀自己。 */
+    private static void drawFrostPart(PoseStack pose, MultiBufferSource buffers, String part,
+                                      AssemblyMotion.Pose p) {
+        if (p == null) return;
+        pose.pushPose();
+        pose.translate(p.x(), p.y(), -p.z());
+        pose.mulPose(Axis.ZP.rotationDegrees(p.roll()));
+        AssemblyStageModel.renderFrost(part, pose, buffers, 1.0f, 1.0f, 1.0f, LightTexture.FULL_BRIGHT);
         pose.popPose();
     }
 

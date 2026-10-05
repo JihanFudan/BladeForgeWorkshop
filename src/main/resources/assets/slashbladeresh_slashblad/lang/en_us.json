@@ -22,6 +22,7 @@
   "item.slashbladeresh_slashblad.heated_clay_blade": "Heated Clay-Coated Blade",
   "item.slashbladeresh_slashblad.hot_blade": "Red-Hot Blade",
   "item.slashbladeresh_slashblad.quenched_blade": "Quenched Blade",
+  "item.slashbladeresh_slashblad.failed_blade": "Failed Blade",
   "item.slashbladeresh_slashblad.tsuba_wood_iron": "Wood and Iron Tsuba",
   "item.slashbladeresh_slashblad.tsuba_wood_gold": "Wood and Gold Tsuba",
   "item.slashbladeresh_slashblad.tsuba_wood_copper": "Wood and Copper Tsuba",
@@ -42,10 +43,9 @@
   "block.slashbladeresh_slashblad.heating_furnace": "Heating Furnace",
   "itemGroup.slashbladeresh_slashblad": "BladeForgeWorkshop",
   "tooltip.slashbladeresh_slashblad.yamato_ssa": "SSA: Ultimate Judgement Cut",
-  "tooltip.slashbladeresh_slashblad.yamato_ssa_trigger": "Hold forward and back, then hold use to activate",
-  "tooltip.slashbladeresh_slashblad.yamato_ssa_cost": "Requires 5000 Proud Soul · Costs 2000 Proud Soul · 3s cooldown",
+  "tooltip.slashbladeresh_slashblad.yamato_ssa_trigger": "Hold forward and back, then hold right-click to charge for 1 second",
+  "tooltip.slashbladeresh_slashblad.yamato_ssa_cost": "Requires 5000 Proud Soul · Costs 2000 · 15s cooldown",
   "tooltip.slashbladeresh_slashblad.yamato_ssa_targets": "Only hostile mobs · animals, villagers and pets are spared",
-  "key.slashbladeresh_slashblad.category": "BladeForgeWorkshop",
   "key.slashbladeresh_slashblad.inspect": "Inspect Blade",
   "tooltip.slashbladeresh_slashblad.inspect": "Hold an inspect key (default G) in hand to play the blade inspect animation",
   "subtitle.slashbladeresh_slashblad.hold": "Holding blade",
@@ -58,5 +58,8 @@
   "msg.slashbladeresh_slashblad.assembly_done_wood": "Wooden blade assembled!",
   "msg.slashbladeresh_slashblad.assembly_done_bamboo": "Bamboo blade assembled!",
   "msg.slashbladeresh_slashblad.assembly_failed": "SlashBlade prerequisite missing; materials returned",
-  "tooltip.slashbladeresh_slashblad.blade_blank_assemble": "Hold and right-click: assembles with a tsuba, handle and sheath from your inventory"
+  "tooltip.slashbladeresh_slashblad.blade_blank_assemble": "Hold and right-click: assembles with a tsuba, handle and sheath from your inventory",
+  "item.slashbladeresh_slashblad.hot_failed_blade": "Scorched Failed Blade",
+  "tooltip.slashbladeresh_slashblad.frost_author": "Author's blade - jihanfudan",
+  "key.slashbladeresh_slashblad.category": "SlashBlade"
 }

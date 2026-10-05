@@ -70,8 +70,8 @@ public class ForgeWorkbenchRenderer implements BlockEntityRenderer<ForgeWorkbenc
 
     static void drawSoul(ItemStack stack, double x, double z, double sink, PoseStack pose, MultiBufferSource buffers, int light, int overlay) {
         String name = switch (BladeData.proudSoulValue(stack)) {
-            case 400 -> "soul_ingot";
-            case 1000 -> "soul_sphere";
+            case 600 -> "soul_ingot";
+            case 1200 -> "soul_sphere";
             default -> "soul_fragment";
         };
         Minecraft mc = Minecraft.getInstance();

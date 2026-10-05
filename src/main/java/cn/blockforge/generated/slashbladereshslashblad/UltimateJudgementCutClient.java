@@ -35,13 +35,24 @@ public final class UltimateJudgementCutClient {
     private static final List<ClientEffect> EFFECTS = new ArrayList<>();
     public static int motionEntity = -1;
     public static float motionPartial;
+    private static long cooldownEndGameTime;
+
+    /** 服务端确认技能成功后同步冷却，客户端只负责绘制准心下方的状态条。 */
+    public static void cooldown(int remainingTicks) {
+        Minecraft minecraft = Minecraft.getInstance();
+        if (minecraft.level != null) {
+            cooldownEndGameTime = minecraft.level.getGameTime() + Math.max(0, remainingTicks);
+        }
+    }
 
     public static float animationAge(int entityId, float partial) {
         Minecraft mc = Minecraft.getInstance();
         if (mc.level == null) return -1;
         for (ClientEffect effect : EFFECTS) {
-            float age = mc.level.getGameTime() - effect.startGameTime + partial;
-            if (effect.casterEntityId == entityId && age >= 0 && age < UltimateJudgementCut.DURATION_TICKS) return age;
+            float slashAge = mc.level.getGameTime() - effect.startGameTime + partial
+                    - UltimateJudgementCut.CHARGE_TICKS;
+            if (effect.casterEntityId == entityId && slashAge >= 0 && slashAge < UltimateJudgementCut.DURATION_TICKS)
+                return slashAge;
         }
         return -1;
     }
@@ -60,7 +71,7 @@ public final class UltimateJudgementCutClient {
         long now = minecraft.level.getGameTime();
         for (ClientEffect effect : EFFECTS) {
             if (effect.casterEntityId != minecraft.player.getId()
-                    || now - effect.startGameTime > UltimateJudgementCut.DURATION_TICKS) continue;
+                    || now - effect.startGameTime > UltimateJudgementCut.TOTAL_TICKS) continue;
             minecraft.player.setDeltaMovement(Vec3.ZERO);
             minecraft.player.input.leftImpulse = 0.0f;
             minecraft.player.input.forwardImpulse = 0.0f;
@@ -81,6 +92,7 @@ public final class UltimateJudgementCutClient {
         EFFECTS.clear();
         motionEntity = -1;
         motionPartial = 0;
+        cooldownEndGameTime = 0L;
     }
 
     public static void start(UltimateJudgementCutNetwork.StartPayload payload) {
@@ -101,7 +113,7 @@ public final class UltimateJudgementCutClient {
         if (!event.isUseItem() || event.getHand() != InteractionHand.MAIN_HAND
                 || minecraft.player == null || minecraft.screen != null) return;
         if (!minecraft.options.keyUp.isDown() || !minecraft.options.keyDown.isDown()) return;
-        if (!UltimateJudgementCut.isYamato(minecraft.player.getMainHandItem())) return;
+        if (!UltimateJudgementCut.isSSACapable(minecraft.player.getMainHandItem())) return;
 
         event.setSwingHand(false);
         event.setCanceled(true);
@@ -112,7 +124,12 @@ public final class UltimateJudgementCutClient {
 
     @SubscribeEvent
     public static void addYamatoTooltip(ItemTooltipEvent event) {
-        if (!UltimateJudgementCut.isYamato(event.getItemStack())) return;
+        if (!UltimateJudgementCut.isSSACapable(event.getItemStack())) return;
+        if (UltimateJudgementCut.isFrost(event.getItemStack())) {
+            // 旧版这里手写的假附魔一行已删除：力量 V、灵魂疾行 II、荆棘 III
+            // 由名刀定义以正常附魔效果给出，原版附魔栏自动展示，不再重复。
+            event.getToolTip().add(Component.translatable("tooltip.slashbladeresh_slashblad.frost_author"));
+        }
         event.getToolTip().add(Component.translatable("tooltip.slashbladeresh_slashblad.yamato_ssa")
                 .withStyle(ChatFormatting.AQUA));
         event.getToolTip().add(Component.translatable("tooltip.slashbladeresh_slashblad.yamato_ssa_trigger")
@@ -129,24 +146,43 @@ public final class UltimateJudgementCutClient {
         if (minecraft.player == null || minecraft.level == null) return;
         long now = minecraft.level.getGameTime();
         EFFECTS.removeIf(effect -> now - effect.startGameTime
-                > UltimateJudgementCut.DURATION_TICKS + SHATTER_TAIL_TICKS);
+                > UltimateJudgementCut.TOTAL_TICKS + SHATTER_TAIL_TICKS);
         int strongestAlpha = 0;
         float strongestFracture = 0.0f;
         for (ClientEffect effect : EFFECTS) {
             float age = now - effect.startGameTime + event.getPartialTick().getGameTimeDeltaPartialTick(false);
             if (!effect.visibleTo(minecraft.player.position(), age)) continue;
-            float fadeIn = Mth.clamp(age / 3.0f, 0.0f, 1.0f);
-            float fadeOut = Mth.clamp((UltimateJudgementCut.DURATION_TICKS + SHATTER_TAIL_TICKS - age)
+            float slashAge = age - UltimateJudgementCut.CHARGE_TICKS;
+            float fadeIn = Mth.clamp(slashAge / 3.0f, 0.0f, 1.0f);
+            float fadeOut = Mth.clamp((UltimateJudgementCut.TOTAL_TICKS + SHATTER_TAIL_TICKS - age)
                     / SHATTER_TAIL_TICKS, 0.0f, 1.0f);
             strongestAlpha = Math.max(strongestAlpha, (int) (72.0f * fadeIn * fadeOut));
             strongestFracture = Math.max(strongestFracture,
-                    Mth.clamp((age - UltimateJudgementCut.IMPACT_TICK) / 2.5f, 0.0f, 1.0f) * fadeOut);
+                    Mth.clamp((slashAge - UltimateJudgementCut.IMPACT_TICK) / 2.5f, 0.0f, 1.0f) * fadeOut);
         }
         if (strongestAlpha > 0) {
             event.getGuiGraphics().fill(0, 0, event.getGuiGraphics().guiWidth(),
                     event.getGuiGraphics().guiHeight(), strongestAlpha << 24 | 0x082C68);
         }
         if (strongestFracture > 0.0f) renderScreenFractures(event, strongestFracture, now);
+        renderCooldownBar(event, minecraft);
+    }
+
+    /** SSA 冷却条：放在生命值上方，短、细、半透明；蓝色恢复中，紫色已就绪。 */
+    private static void renderCooldownBar(RenderGuiEvent.Post event, Minecraft minecraft) {
+        if (minecraft.player == null || !UltimateJudgementCut.isSSACapable(minecraft.player.getMainHandItem())) return;
+        long now = minecraft.level.getGameTime();
+        float progress = Mth.clamp(1.0f - (float) (cooldownEndGameTime - now)
+                / UltimateJudgementCut.COOLDOWN_TICKS, 0.0f, 1.0f);
+        int width = 34;
+        int height = 2;
+        // 相对上一版再右移 10% 屏宽
+        int left = 4 + event.getGuiGraphics().guiWidth() / 10;
+        int top = event.getGuiGraphics().guiHeight() - 46;
+        // 整条 SSA 进度条统一为 50% 透明度（ARGB 的 alpha=0x80）。
+        int color = progress >= 1.0f ? 0x809B4DFF : 0x803D9BFF;
+        event.getGuiGraphics().fill(left, top, left + width, top + height, 0x80081018);
+        event.getGuiGraphics().fill(left, top, left + Math.round(width * progress), top + height, color);
     }
 
     /** 末段的近景裂纹：细亮缝与半透明镜面碎片叠在蓝色领域上。 */
@@ -181,7 +217,7 @@ public final class UltimateJudgementCutClient {
         while (iterator.hasNext()) {
             ClientEffect effect = iterator.next();
             float age = now - effect.startGameTime + partial;
-            if (age > UltimateJudgementCut.DURATION_TICKS + SHATTER_TAIL_TICKS) {
+            if (age > UltimateJudgementCut.TOTAL_TICKS + SHATTER_TAIL_TICKS) {
                 iterator.remove();
                 continue;
             }
@@ -190,7 +226,7 @@ public final class UltimateJudgementCutClient {
     }
 
     private static final class ClientEffect {
-        private static final int SLASH_COUNT = 20;
+        private static final int SLASH_COUNT = 32;
         private static final int SPHERE_SEGMENTS = 48;
         private final int casterEntityId;
         private final Vec3 center;
@@ -205,15 +241,26 @@ public final class UltimateJudgementCutClient {
         }
 
         private boolean visibleTo(Vec3 viewer, float age) {
-            return age >= 1.0f && age <= UltimateJudgementCut.DURATION_TICKS + SHATTER_TAIL_TICKS
+            float slashAge = age - UltimateJudgementCut.CHARGE_TICKS;
+            return slashAge >= 1.0f && slashAge <= UltimateJudgementCut.DURATION_TICKS + SHATTER_TAIL_TICKS
                     && viewer.distanceToSqr(center) <= UltimateJudgementCut.RADIUS * UltimateJudgementCut.RADIUS;
         }
 
         private void render(RenderLevelStageEvent event, float age, Minecraft minecraft) {
-            if (age < 1.0f) return;
             Vec3 camera = event.getCamera().getPosition();
             PoseStack pose = event.getPoseStack();
             MultiBufferSource.BufferSource buffers = EFFECT_BUFFERS;
+            // 蓄力阶段：脚下画出技能范围的蓝圈，圈随进度收束。
+            if (age < UltimateJudgementCut.CHARGE_TICKS) {
+                renderChargeRing(age, camera, pose, buffers.getBuffer(RenderType.lightning()), minecraft);
+                buffers.endBatch();
+                return;
+            }
+            age -= UltimateJudgementCut.CHARGE_TICKS;
+            if (age < 1.0f) {
+                buffers.endBatch();
+                return;
+            }
             renderBoundary(age, camera, pose, buffers.getBuffer(RenderType.lightning()));
 
             // 每次释放生成不同布局；同一次释放每帧使用同一随机种子，避免线条跳动。
@@ -276,6 +323,47 @@ public final class UltimateJudgementCutClient {
                     new Vec3(1, 0, 0), new Vec3(0, 0, 1), latitudeRadius, 0.04f, alpha * 2 / 3);
             drawRing(pose, buffer, relativeCenter.add(0, -radius * 0.5, 0),
                     new Vec3(1, 0, 0), new Vec3(0, 0, 1), latitudeRadius, 0.04f, alpha * 2 / 3);
+            // 透明蓝色球壳轮廓：范围外的玩家也能看清领域边界。
+            int shellAlpha = alpha / 2;
+            drawRing(pose, buffer, relativeCenter.add(0, radius * 0.25, 0),
+                    new Vec3(1, 0, 0), new Vec3(0, 0, 1), radius * 0.968f, 0.03f, shellAlpha);
+            drawRing(pose, buffer, relativeCenter,
+                    new Vec3(0, 1, 0), new Vec3(0, 0, 1), radius, 0.03f, shellAlpha);
+            drawRing(pose, buffer, relativeCenter,
+                    new Vec3(1, 0, 0), new Vec3(0, 1, 0), radius, 0.03f, shellAlpha);
+        }
+
+        /** 蓄力蓝圈：范围外圈先亮起，进度圈从外向内收束，收拢到脚下一瞬即出刀。 */
+        private void renderChargeRing(float age, Vec3 camera, PoseStack pose, VertexConsumer buffer,
+                                      Minecraft minecraft) {
+            float progress = Mth.clamp(age / UltimateJudgementCut.CHARGE_TICKS, 0.0f, 1.0f);
+            float fadeIn = Mth.clamp(age / 4.0f, 0.0f, 1.0f);
+            int alpha = (int) (200 * fadeIn);
+            double feetY = center.y - 0.9;
+            if (minecraft.level != null && minecraft.level.getEntity(casterEntityId) != null) {
+                feetY = minecraft.level.getEntity(casterEntityId).getY() + 0.03;
+            }
+            Vec3 feet = new Vec3(center.x, feetY, center.z).subtract(camera);
+            double pulse = 1.0 + 0.015 * Math.sin(age * 0.9);
+            drawRing(pose, buffer, feet, new Vec3(1, 0, 0), new Vec3(0, 0, 1),
+                    UltimateJudgementCut.RADIUS * pulse, 0.06f, alpha);
+            drawRing(pose, buffer, feet, new Vec3(1, 0, 0), new Vec3(0, 0, 1),
+                    UltimateJudgementCut.RADIUS * pulse, 0.02f, Math.min(255, alpha * 2));
+            // 收束的进度圈
+            double inner = UltimateJudgementCut.RADIUS * (1.35 - 1.3 * progress * progress);
+            drawRing(pose, buffer, feet, new Vec3(1, 0, 0), new Vec3(0, 0, 1),
+                    inner, 0.035f, (int) (170 * (1.0f - progress * 0.55f)));
+            // 透明蓝色球形范围轮廓：几条倾斜的纬线圈，范围外的玩家也能看清技能边界。
+            Vec3 middle = new Vec3(center.x, center.y, center.z).subtract(camera);
+            int sphereAlpha = (int) (70 * fadeIn);
+            drawRing(pose, buffer, middle, new Vec3(1, 0, 0), new Vec3(0, 0, 1),
+                    UltimateJudgementCut.RADIUS * pulse * 0.866f, 0.03f, sphereAlpha);
+            drawRing(pose, buffer, middle, new Vec3(1, 0, 0), new Vec3(0, 0, 1),
+                    UltimateJudgementCut.RADIUS * pulse * 0.5f, 0.03f, sphereAlpha);
+            drawRing(pose, buffer, middle, new Vec3(0, 1, 0), new Vec3(0, 0, 1),
+                    UltimateJudgementCut.RADIUS * pulse, 0.03f, sphereAlpha);
+            drawRing(pose, buffer, middle, new Vec3(1, 0, 0), new Vec3(0, 1, 0),
+                    UltimateJudgementCut.RADIUS * pulse, 0.03f, sphereAlpha);
         }
 
         private void drawRing(PoseStack pose, VertexConsumer buffer, Vec3 ringCenter, Vec3 axisA, Vec3 axisB,

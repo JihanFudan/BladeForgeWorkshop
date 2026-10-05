@@ -26,7 +26,6 @@ public class HotIngotItem extends Item implements HotMetal.Hot {
     @Override
     public void appendHoverText(ItemStack stack, TooltipContext context, List<Component> tooltip, TooltipFlag flag) {
         super.appendHoverText(stack, context, tooltip, flag);
-        tooltip.add(Component.literal("烧红：攻击 +1，命中点燃目标"));
-        tooltip.add(Component.literal("背包里没放钳子时，每秒烫掉自己 1 滴血"));
+        tooltip.add(Component.literal("没钳子时每秒烫 1 滴血"));
     }
 }

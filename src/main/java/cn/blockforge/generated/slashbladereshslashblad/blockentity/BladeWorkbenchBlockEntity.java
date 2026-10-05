@@ -39,7 +39,7 @@ public class BladeWorkbenchBlockEntity extends BlockEntity {
             if (stacks().stream().anyMatch(s -> !s.isEmpty())) {
                 for (int i = 0; i < SLOT_COUNT; i++) giveBack(player, inventory.removeItemNoUpdate(i));
                 tell(player, "台上的材料已全部收回背包。"); sync();
-            } else tell(player, "按 JEI 的刀剑制作台配方逐件放入材料，最后用锻造锤右键；空手右键取回材料。");
+            } else tell(player, "按 JEI 清单逐件放入，锻造锤右键完成，空手可取回。");
             return ItemInteractionResult.SUCCESS;
         }
         if (held.is(GeneratedMod.FORGING_HAMMER.get())) {
@@ -53,12 +53,12 @@ public class BladeWorkbenchBlockEntity extends BlockEntity {
         if (isAlloyMaterial(held)) {
             boolean tableAllAlloy = stacks().stream().allMatch(s -> s.isEmpty() || isAlloyMaterial(s));
             if (!tableAllAlloy) {
-                tell(player, "台面已有别的材料，先空手右键取回，再配碳粉、黏土和钢锭。");
+                tell(player, "台面已有材料，先空手取回，再配碳粉、黏土和钢锭。");
                 return ItemInteractionResult.SUCCESS;
             }
             inventory.setItem(slot, held.copyWithCount(1)); held.shrink(1);
             level.playSound(null, pos, SoundEvents.WOOD_PLACE, SoundSource.BLOCKS, 0.7f, 1.1f);
-            tell(player, "合金原料已放入：1 钢锭 + 1 黏土 + 1 碳粉 = 低碳钢，再加一份碳粉 = 高碳钢。用锻造锤右键完成。");
+            tell(player, "原料已放齐：钢锭1＋黏土1＋碳粉1＝低碳钢，再加一份碳粉＝高碳钢。");
             sync();
             return ItemInteractionResult.SUCCESS;
         }
@@ -66,13 +66,13 @@ public class BladeWorkbenchBlockEntity extends BlockEntity {
         proposed.set(slot, held.copyWithCount(1));
         List<BladeWorkbenchRecipes.NamedRecipe> recipes = BladeWorkbenchRecipes.namedRecipes(level);
         if (recipes.stream().noneMatch(r -> r.acceptsPartial(proposed))) {
-            tell(player, "材料已放够或不属于同一配方，请按 JEI 清单放置；空手右键可以取回。");
+            tell(player, "材料与配方不符；空手右键可以取回。");
             return ItemInteractionResult.SUCCESS;
         }
         inventory.setItem(slot, held.copyWithCount(1)); held.shrink(1);
         level.playSound(null, pos, SoundEvents.WOOD_PLACE, SoundSource.BLOCKS, 0.7f, 1.1f);
         var complete = BladeWorkbenchRecipes.find(stacks(), level);
-        tell(player, complete == null ? "已放入一件，继续按 JEI 补齐材料；原刀的杀敌、耀魂等条件也须达标。"
+        tell(player, complete == null ? "已放入一件；材料与原刀条件都须按 JEI 达标。"
                 : complete.displayName() + "材料与条件齐全，手持锻造锤右键完成制作。");
         sync();
         return ItemInteractionResult.SUCCESS;
@@ -90,7 +90,7 @@ public class BladeWorkbenchBlockEntity extends BlockEntity {
             return;
         }
         var recipe = BladeWorkbenchRecipes.find(inputs, level);
-        if (recipe == null) { tell(player, "材料数量或原刀条件未满足，请按 JEI 配方检查。"); return; }
+        if (recipe == null) { tell(player, "材料或原刀条件未满足，请按 JEI 检查。"); return; }
         ItemStack out = recipe.assemble(inputs, level);
         if (out.isEmpty() || !BladeData.isSlashBlade(out)) { tell(player, "配方未生成有效拔刀剑，材料未消耗。"); return; }
         // 所有运算在产物副本上完成；成功后才消耗材料，避免失败丢刀。
@@ -121,7 +121,7 @@ public class BladeWorkbenchBlockEntity extends BlockEntity {
         for (int i = 0; i < SLOT_COUNT; i++) inventory.removeItemNoUpdate(i);
         giveBack(player, out);
         for (ItemStack remainder : remains) giveBack(player, remainder);
-        tell(player, recipe.displayName() + "锻造完成！原刀的杀敌数、耀魂数、精炼数和攻击养成已保留。");
+        tell(player, recipe.displayName() + "锻造完成！原刀的杀敌、耀魂、精炼与攻击养成已继承。");
         level.playSound(null, pos, SoundEvents.SMITHING_TABLE_USE, SoundSource.BLOCKS, 1.0f, 0.75f);
         level.playSound(null, pos, SoundEvents.ANVIL_HIT, SoundSource.BLOCKS, 0.8f, 1.1f);
         sync();
@@ -149,7 +149,7 @@ public class BladeWorkbenchBlockEntity extends BlockEntity {
         if (steel == 1 && clay == 1 && carbon == 1) result = GeneratedMod.LOW_CARBON_STEEL.get();
         else if (steel == 1 && clay == 1 && carbon == 2) result = GeneratedMod.HIGH_CARBON_STEEL.get();
         if (result == null) {
-            tell(player, "合金配比不对：低碳钢＝1 钢锭 + 1 黏土 + 1 碳粉；高碳钢＝1 钢锭 + 1 黏土 + 2 碳粉。当前碳 "
+            tell(player, "配比不对：低碳钢＝钢锭1＋黏土1＋碳粉1；高碳钢＝再加一份碳粉。当前碳 "
                     + carbon + "、黏土 " + clay + "、钢锭 " + steel + "。");
             return;
         }

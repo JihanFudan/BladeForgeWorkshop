@@ -16,6 +16,7 @@ public final class BladeData {
     private static final String GUARD = "Guard";
     private static final String FOLDS = "SoulFolds";
     private static final String SOUL_ATTACK = "SoulAttackBonus";
+    private static final String SOUL_FAIL_CHANCE = "SoulFailChance";
     private static final String RATIO = "ForgeRatio";
     private static final String RATIO_GRADE = "Grade";
     /** 融合时每种钢的枚数（1.0.4-r18 起支持混熔）。旧存档只有 Grade 一项，照常按单钢结算。 */
@@ -53,6 +54,8 @@ public final class BladeData {
             ResourceLocation.fromNamespaceAndPath("slashblade", "slashblade_wood");
     public static final ResourceLocation SLASHBLADE_BAMBOO =
             ResourceLocation.fromNamespaceAndPath("slashblade", "slashblade_bamboo");
+    public static final ResourceLocation FROST_DEFINITION =
+            ResourceLocation.fromNamespaceAndPath(GeneratedMod.MOD_ID, "frost");
     private static final String BLADE_STATE = "bladeState";
     private static final String BASE_ATTACK = "baseAttackModifier";
     private static final String MAX_DAMAGE = "maxDamage";
@@ -111,9 +114,9 @@ public final class BladeData {
     /** 锻造铁砧允许的三档耀魂材料：耀魂碎片、耀魂铁锭、耀魂宝珠。 */
     public static int proudSoulValue(ItemStack stack) {
         ResourceLocation id = BuiltInRegistries.ITEM.getKey(stack.getItem());
-        if (PROUDSOUL.equals(id)) return 200;
-        if (PROUDSOUL_INGOT.equals(id)) return 400;
-        if (PROUDSOUL_SPHERE.equals(id)) return 1000;
+        if (PROUDSOUL.equals(id)) return 400;
+        if (PROUDSOUL_INGOT.equals(id)) return 600;
+        if (PROUDSOUL_SPHERE.equals(id)) return 1200;
         return 0;
     }
 
@@ -127,9 +130,9 @@ public final class BladeData {
 
     public static int proudSoulDurability(ItemStack stack) {
         ResourceLocation id = BuiltInRegistries.ITEM.getKey(stack.getItem());
-        if (PROUDSOUL.equals(id)) return 10;
-        if (PROUDSOUL_INGOT.equals(id)) return 20;
-        if (PROUDSOUL_SPHERE.equals(id)) return 50;
+        if (PROUDSOUL.equals(id)) return 20;
+        if (PROUDSOUL_INGOT.equals(id)) return 30;
+        if (PROUDSOUL_SPHERE.equals(id)) return 60;
         return 0;
     }
 
@@ -229,27 +232,75 @@ public final class BladeData {
         save(stack, root);
     }
 
-    /** 增加攻击、耀魂和击杀数，并恢复已损耗的耐久，不改变耐久上限。 */
-    public static void addSoulFold(ItemStack stack, int soul, int kills, int repairAmount) {
+    /** 精炼数：前置记录在刀身上的 RepairCounter，每成功吸收一次耀魂 +1。 */
+    public static int refineCount(ItemStack stack) {
+        return externalState(stack).getInt("RepairCounter");
+    }
+
+    /**
+     * 当前铁砧耀魂锻打的失败概率，直接记录在每把刀上。
+     * 老刀第一次读取时沿用旧版按精炼数计算的概率；之后每次成功 +1%，每次失败 -1%，
+     * 始终限制在 0%～50%。这样不会因升级丢失旧进度，也不会改动模组版本号。
+     */
+    public static double soulFoldFailChance(ItemStack stack) {
+        migrateLegacy(stack);
+        CompoundTag root = root(stack);
+        if (root.contains(SOUL_FAIL_CHANCE)) {
+            return Math.clamp(root.getDouble(SOUL_FAIL_CHANCE), 0.0, 0.5);
+        }
+        int refine = Math.max(0, refineCount(stack));
+        double initial = refine < 10 ? 0.0 : refine >= 30 ? 0.5 : (refine - 10) / 40.0;
+        root.putDouble(SOUL_FAIL_CHANCE, initial);
+        save(stack, root);
+        return initial;
+    }
+
+    /** 根据刚才的锻造结果调整下一锤概率：成功 +1%，失败 -1%。 */
+    public static double adjustSoulFoldFailChance(ItemStack stack, boolean failed) {
+        double next = Math.clamp(soulFoldFailChance(stack) + (failed ? -0.01 : 0.01), 0.0, 0.5);
+        CompoundTag root = root(stack);
+        root.putDouble(SOUL_FAIL_CHANCE, next);
+        save(stack, root);
+        return next;
+    }
+
+    /**
+     * 增加攻击、耀魂和击杀数，并恢复已损耗的耐久，不改变耐久上限。
+     * failed=true 表示这一锤锻造失手：伤害不再增长，杀敌数一点不给，
+     * 只有耀魂数按原有效果减半、耐久恢复量由调用方同样先减半传入；
+     * 精炼数不给，累计锻打次数照常记录。
+     * 返回实际恢复的耐久点数。
+     */
+    public static int addSoulFold(ItemStack stack, int soul, int kills, int repairAmount, boolean failed) {
         migrateLegacy(stack);
         CompoundTag root = root(stack);
         root.putBoolean(BLADE, true);
         // 已经迁移过的刀保持更高版本号，别让每次锻打把 v3 标记降级回 v2。
         root.putInt("DataVersion", Math.max(2, root.getInt("DataVersion")));
         root.putInt(FOLDS, saturatedAdd(root.getInt(FOLDS), 1));
+        int applied = 0;
         if (isSlashBlade(stack)) {
             CompoundTag state = externalState(stack);
-            float gain = RefinementCurve.nextSoulGain(state.getInt("RepairCounter"));
+            // 失手的这一锤不加伤害：攻击增量直接记 0，精炼数本来就不涨。
+            float gain = failed ? 0.0F : RefinementCurve.nextSoulGain(state.getInt("RepairCounter"));
             root.putFloat(SOUL_ATTACK, root.getFloat(SOUL_ATTACK) + gain);
             save(stack, root);
             state.putFloat(BASE_ATTACK, state.getFloat(BASE_ATTACK) + gain);
-            state.putInt("proudSoul", saturatedAdd(state.getInt("proudSoul"), soul));
-            state.putInt("killCount", saturatedAdd(state.getInt("killCount"), kills));
-            state.putInt(CURRENT_DAMAGE, Math.max(0, state.getInt(CURRENT_DAMAGE) - Math.max(0, repairAmount)));
-            state.putInt("RepairCounter", saturatedAdd(state.getInt("RepairCounter"), 1));
+            int soulGain = failed ? Math.max(0, soul) / 2 : Math.max(0, soul);
+            int killGain = failed ? 0 : Math.max(0, kills);
+            state.putInt("proudSoul", saturatedAdd(state.getInt("proudSoul"), soulGain));
+            state.putInt("killCount", saturatedAdd(state.getInt("killCount"), killGain));
+            applied = Math.max(0, repairAmount);
+            state.putInt(CURRENT_DAMAGE, Math.max(0, state.getInt(CURRENT_DAMAGE) - applied));
+            if (!failed) {
+                state.putInt("RepairCounter", saturatedAdd(state.getInt("RepairCounter"), 1));
+            }
             state.putBoolean("isBroken", false);
             saveExternalState(stack, state);
+        } else {
+            save(stack, root);
         }
+        return applied;
     }
 
     private static int saturatedAdd(int value, int increment) {
@@ -412,6 +463,21 @@ public final class BladeData {
     public static ItemStack sword(ResourceLocation id) {
         Item item = BuiltInRegistries.ITEM.get(id);
         return item == null || item == net.minecraft.world.item.Items.AIR ? ItemStack.EMPTY : new ItemStack(item);
+    }
+
+    /** 从前置的 named_blades 数据注册表生成名刀·寒霜，保留定义里的模型、SA、攻击和耐久。 */
+    public static ItemStack frostBlade(net.minecraft.core.HolderLookup.Provider registries) {
+        try {
+            return registries.lookupOrThrow(
+                    mods.flammpfeil.slashblade.registry.slashblade.SlashBladeDefinition.REGISTRY_KEY)
+                    .get(net.minecraft.resources.ResourceKey.create(
+                            mods.flammpfeil.slashblade.registry.slashblade.SlashBladeDefinition.REGISTRY_KEY,
+                            FROST_DEFINITION))
+                    .map(holder -> holder.value().getBlade(registries))
+                    .orElse(ItemStack.EMPTY);
+        } catch (RuntimeException e) {
+            return ItemStack.EMPTY;
+        }
     }
 
     public static boolean isSword(ItemStack stack, ResourceLocation id) {

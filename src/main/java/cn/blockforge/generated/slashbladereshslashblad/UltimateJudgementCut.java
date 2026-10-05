@@ -9,7 +9,6 @@ import java.util.Map;
 import java.util.UUID;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
@@ -44,12 +43,17 @@ import net.neoforged.neoforge.event.tick.ServerTickEvent;
 /** 阎魔专属 SSA“究极次元斩”的服务端状态机、区域冻结和伤害结算。 */
 public final class UltimateJudgementCut {
     public static final double RADIUS = 17.0;
+    /** 蓄力 1 秒：脚下画出蓝圈标记技能范围，到时才真正出刀。 */
+    public static final int CHARGE_TICKS = 20;
     /** 前 0.5 秒完成上斩与残影飞行，随后用 2.5 秒缓慢纳刀。 */
     public static final int DURATION_TICKS = 60;
+    /** 蓄力＋挥斩的整段时长。 */
+    public static final int TOTAL_TICKS = CHARGE_TICKS + DURATION_TICKS;
     public static final int SLASH_PHASE_TICKS = 10;
     /** 纳刀完全结束的一刻才结算伤害并触发空间破碎。 */
     public static final int IMPACT_TICK = DURATION_TICKS;
-    private static final int COOLDOWN_TICKS = DURATION_TICKS;
+    /** 技能冷却 15 秒（从按下算起）。 */
+    public static final int COOLDOWN_TICKS = 300;
     private static final ResourceLocation UPPERSLASH_COMBO = ResourceLocation.fromNamespaceAndPath("slashblade", "upperslash");
     private static final ResourceLocation UPPERSLASH_END_COMBO = ResourceLocation.fromNamespaceAndPath("slashblade", "upperslash_end");
     private static final ResourceLocation JUDGEMENT_CUT_SHEATH_COMBO = ResourceLocation.fromNamespaceAndPath("slashblade", "judgement_cut_sheath");
@@ -81,41 +85,47 @@ public final class UltimateJudgementCut {
     /** 客户端请求只表达按键意图；资格、冷却、刀和结算全部由服务器复查。 */
     public static void tryStart(ServerPlayer player) {
         ItemStack blade = player.getMainHandItem();
-        if (!player.isAlive() || player.isSpectator() || !isYamato(blade)) return;
+        if (!player.isAlive() || player.isSpectator() || !isSSACapable(blade)) return;
         if (InspectComboStates.isInspecting(player)) return;
         long now = player.server.getTickCount();
         if (COOLDOWNS.getOrDefault(player.getUUID(), 0L) > now || SESSIONS.containsKey(player.getUUID())) return;
 
         CompoundTag state = SlashBladeBridge.read(blade);
         int proudSoul = state.getInt("proudSoul");
-        if (proudSoul < REQUIRED_PROUD_SOUL) {
-            player.displayClientMessage(Component.literal("耀魂不足：究极次元斩至少需要 5000 耀魂"), true);
-            return;
-        }
+        if (proudSoul < REQUIRED_PROUD_SOUL) return;
         state.putInt("proudSoul", proudSoul - PROUD_SOUL_COST);
         SlashBladeBridge.write(blade, state);
 
         Session session = new Session(player, now);
         SESSIONS.put(player.getUUID(), session);
         COOLDOWNS.put(player.getUUID(), now + COOLDOWN_TICKS);
-        // 使用重锋原有上斩，客户端将同一动作压缩到前十 tick。
-        setCombo(player.getMainHandItem(), UPPERSLASH_COMBO, player.level().getGameTime());
-        SlashBladeBridge.broadcastMotion(player, UPPERSLASH_COMBO, player.level().getGameTime());
-        player.displayClientMessage(Component.literal("SSA：究极次元斩"), true);
-        player.level().playSound(null, player.blockPosition(), SoundEvents.PLAYER_ATTACK_SWEEP,
-                SoundSource.PLAYERS, 1.3f, 0.65f);
+        // 蓄力阶段先收刀入鞘摆架势，客户端脚下同时画出蓝圈。
+        setCombo(player.getMainHandItem(), JUDGEMENT_CUT_SHEATH_COMBO, player.level().getGameTime());
+        SlashBladeBridge.broadcastMotion(player, JUDGEMENT_CUT_SHEATH_COMBO, player.level().getGameTime());
+        player.level().playSound(null, player.blockPosition(), SoundEvents.NOTE_BLOCK_HARP.value(),
+                SoundSource.PLAYERS, 1.0f, 0.7f);
         session.captureTargets(player);
         UltimateJudgementCutNetwork.broadcastStart(session);
+        UltimateJudgementCutNetwork.sendCooldown(player, COOLDOWN_TICKS);
     }
 
-    public static boolean isYamato(ItemStack stack) {
+    public static boolean isFrost(ItemStack stack) {
+        if (!BladeData.isSlashBlade(stack)) return false;
+        CompoundTag state = SlashBladeBridge.read(stack);
+        String identity = (state.getString("translationKey") + " "
+                + state.getString("ModelName") + " " + state.getString("TextureName"))
+                .toLowerCase(Locale.ROOT);
+        return identity.contains("frost");
+    }
+
+    public static boolean isSSACapable(ItemStack stack) {
         if (!BladeData.isSlashBlade(stack)) return false;
         CompoundTag state = SlashBladeBridge.read(stack);
         if (state.getBoolean("isBroken") || state.getBoolean("isSealed")) return false;
         String identity = (state.getString("translationKey") + " "
                 + state.getString("ModelName") + " " + state.getString("TextureName"))
                 .toLowerCase(Locale.ROOT);
-        return identity.contains("yamato");
+        return identity.contains("yamato") || identity.contains("frost");
     }
 
     @SubscribeEvent
@@ -234,13 +244,14 @@ public final class UltimateJudgementCut {
 
     /**
      * 直接走服务端原版玩家伤害入口，避免 SlashBlade 的 AttackHelper 把被冻结目标再次过滤。
-     * 五段各自结算，既能触发受击反馈，也确保范围内每个有效目标都会实际扣血。
+     * 三十二段各自结算，总伤害为拔刀剑本身攻击力的 32 倍，
+     * 既能触发受击反馈，也确保范围内每个有效目标都会实际扣血。
      */
-    private static void attackFivefold(ServerPlayer caster, LivingEntity target) {
+    private static void attackThirtyTwofold(ServerPlayer caster, LivingEntity target) {
         float damagePerHit = (float) Math.max(2.0, caster.getAttributeValue(Attributes.ATTACK_DAMAGE));
         resolvingUltimateDamage = true;
         try {
-            for (int hit = 0; hit < 5 && target.isAlive(); hit++) {
+            for (int hit = 0; hit < 32 && target.isAlive(); hit++) {
                 target.invulnerableTime = 0;
                 target.hurt(caster.damageSources().playerAttack(caster), damagePerHit);
                 target.invulnerableTime = 0;
@@ -311,7 +322,8 @@ public final class UltimateJudgementCut {
             ServerPlayer caster = server.getPlayerList().getPlayer(casterId);
             ServerLevel level = server.getLevel(dimension);
             long age = server.getTickCount() - startTick;
-            if (caster == null || level == null || !caster.isAlive() || age > DURATION_TICKS) {
+            long slashAge = age - CHARGE_TICKS;
+            if (caster == null || level == null || !caster.isAlive() || age > TOTAL_TICKS) {
                 if (caster != null) setCombo(caster.getMainHandItem(), STANDBY_COMBO, caster.level().getGameTime());
                 frozen.clear();
                 return false;
@@ -321,25 +333,39 @@ public final class UltimateJudgementCut {
             caster.moveTo(center.x, center.y - caster.getBbHeight() * 0.5, center.z, yaw, pitch);
             caster.yBodyRot = caster.yBodyRotO = caster.yHeadRot = caster.yHeadRotO = yaw;
             caster.stopUsingItem();
-            captureTargets(caster);
-            restoreFrozenPositions(level);
+            if (!impacted) {
+                captureTargets(caster);
+                restoreFrozenPositions(level);
+            }
+
+            // 蓄力到点：脚下蓝圈收束，正式接上重锋原有上斩。
+            if (age == CHARGE_TICKS) {
+                setCombo(caster.getMainHandItem(), UPPERSLASH_COMBO, caster.level().getGameTime());
+                SlashBladeBridge.broadcastMotion(caster, UPPERSLASH_COMBO, caster.level().getGameTime());
+                caster.level().playSound(null, caster.blockPosition(), SoundEvents.PLAYER_ATTACK_SWEEP,
+                        SoundSource.PLAYERS, 1.3f, 0.65f);
+            }
+            if (slashAge < 0) {
+                setCombo(caster.getMainHandItem(), JUDGEMENT_CUT_SHEATH_COMBO, caster.level().getGameTime());
+                return true;
+            }
 
             // 上斩与其收刀使用连续的原始动作帧，纳刀期间不再切换其他剑技。
-            if (age == SLASH_PHASE_TICKS) {
+            if (slashAge == SLASH_PHASE_TICKS) {
                 setCombo(caster.getMainHandItem(), UPPERSLASH_END_COMBO, caster.level().getGameTime());
                 SlashBladeBridge.broadcastMotion(caster, UPPERSLASH_END_COMBO, caster.level().getGameTime());
                 level.playSound(null, caster.blockPosition(), SoundEvents.ENDERMAN_TELEPORT,
                         SoundSource.PLAYERS, 0.75f, 1.8f);
             }
             // 慢纳刀占后半段。持续刷新起始时间，阻止重锋在中途自动回到待机，从而保证模型完整收刀。
-            if (age >= SLASH_PHASE_TICKS && age < DURATION_TICKS) {
+            if (slashAge >= SLASH_PHASE_TICKS && slashAge < DURATION_TICKS) {
                 setCombo(caster.getMainHandItem(), UPPERSLASH_END_COMBO, caster.level().getGameTime());
             }
-            if (!impacted && age >= IMPACT_TICK) {
+            if (!impacted && slashAge >= IMPACT_TICK) {
                 impacted = true;
                 impact(caster, level);
             }
-            if (age == DURATION_TICKS) setCombo(caster.getMainHandItem(), STANDBY_COMBO, caster.level().getGameTime());
+            if (slashAge == DURATION_TICKS) setCombo(caster.getMainHandItem(), STANDBY_COMBO, caster.level().getGameTime());
             return true;
         }
 
@@ -393,10 +419,9 @@ public final class UltimateJudgementCut {
                     targets.add(living);
                 }
             }
-            for (LivingEntity target : targets) attackFivefold(caster, target);
-            if (targets.isEmpty()) {
-                caster.displayClientMessage(Component.literal("SSA：范围内没有敌对生物，友军未被波及"), true);
-            }
+            for (LivingEntity target : targets) attackThirtyTwofold(caster, target);
+            // 伤害结算后停止冻结目标，不再额外改写怪物速度；后续运动完全交给拔刀剑本身处理。
+            frozen.clear();
 
             level.sendParticles(ParticleTypes.FLASH, center.x, center.y, center.z,
                     4, 2.5, 2.5, 2.5, 0.0);

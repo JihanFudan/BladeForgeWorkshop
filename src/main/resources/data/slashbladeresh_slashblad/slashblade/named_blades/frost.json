@@ -1,0 +1,29 @@
+{
+  "item": "slashblade:slashblade",
+  "name": "slashbladeresh_slashblad:frost",
+  "enchantments": [
+    {
+      "id": "minecraft:power",
+      "lvl": 5
+    },
+    {
+      "id": "minecraft:soul_speed",
+      "lvl": 2
+    },
+    {
+      "id": "minecraft:thorns",
+      "lvl": 3
+    }
+  ],
+  "properties": {
+    "attack_base": 4.0,
+    "max_damage": 40,
+    "slash_art": "slashblade:judgement_cut",
+    "sword_type": ["bewitched"]
+  },
+  "render": {
+    "model": "slashbladeresh_slashblad:model/named/frost/frost.obj",
+    "texture": "slashbladeresh_slashblad:model/named/frost/frost.png",
+    "carry_type": "default"
+  }
+}

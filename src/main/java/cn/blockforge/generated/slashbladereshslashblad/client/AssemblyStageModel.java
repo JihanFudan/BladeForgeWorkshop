@@ -34,14 +34,20 @@ public final class AssemblyStageModel {
     public static final ResourceLocation TEX_BAMBOO =
             ResourceLocation.fromNamespaceAndPath(cn.blockforge.generated.slashbladereshslashblad.GeneratedMod.MOD_ID,
                     "textures/assembly/sb_bamboo.png");
+    public static final ResourceLocation TEX_FROST =
+            ResourceLocation.fromNamespaceAndPath(cn.blockforge.generated.slashbladereshslashblad.GeneratedMod.MOD_ID,
+                    "textures/assembly/sb_frost.png");
 
     private static final org.slf4j.Logger LOGGER =
             org.slf4j.LoggerFactory.getLogger("BladeAssemblyModel");
     private static final ResourceLocation JSON_LOC = ResourceLocation.fromNamespaceAndPath(
             cn.blockforge.generated.slashbladereshslashblad.GeneratedMod.MOD_ID, "assembly/blade_parts.json");
+    private static final ResourceLocation FROST_JSON_LOC = ResourceLocation.fromNamespaceAndPath(
+            cn.blockforge.generated.slashbladereshslashblad.GeneratedMod.MOD_ID, "assembly/frost_parts.json");
 
     /** 每部件一个浮点数组：[x,y,z,u,v] * 3 顶点/三角。 */
     private static volatile Map<String, float[]> parts;
+    private static volatile Map<String, float[]> frostParts;
     private static final Map<ResourceLocation, RenderType> RENDER_TYPES = new HashMap<>();
 
     private AssemblyStageModel() {
@@ -49,6 +55,7 @@ public final class AssemblyStageModel {
 
     public static void reload() {
         parts = null;
+        frostParts = null;
         RENDER_TYPES.clear();
     }
 
@@ -56,10 +63,25 @@ public final class AssemblyStageModel {
         return load() != null;
     }
 
+    public static boolean frostAvailable() {
+        return loadFrost() != null;
+    }
+
     /** 画一个部件；tint 为 RGB 0..1 乘色（金刀镡用暖金色，普通传白色）。 */
     public static void render(String part, PoseStack pose, MultiBufferSource buffers,
                               ResourceLocation sheet, float tintR, float tintG, float tintB, int light) {
-        Map<String, float[]> map = load();
+        renderFrom(load(), part, pose, buffers, sheet, tintR, tintG, tintB, light);
+    }
+
+    /** 名刀·寒霜的组装部件：寒霜刀身 + 付丧刀鞘网格与专用材质表。 */
+    public static void renderFrost(String part, PoseStack pose, MultiBufferSource buffers,
+                                   float tintR, float tintG, float tintB, int light) {
+        renderFrom(loadFrost(), part, pose, buffers, TEX_FROST, tintR, tintG, tintB, light);
+    }
+
+    private static void renderFrom(Map<String, float[]> map, String part, PoseStack pose,
+                                   MultiBufferSource buffers, ResourceLocation sheet,
+                                   float tintR, float tintG, float tintB, int light) {
         if (map == null) return;
         float[] data = map.get(part);
         if (data == null || data.length < 15) return;
@@ -87,13 +109,21 @@ public final class AssemblyStageModel {
     private static Map<String, float[]> load() {
         Map<String, float[]> local = parts;
         if (local != null) return local.isEmpty() ? null : local;
-        local = read();
+        local = read(JSON_LOC);
         parts = local == null ? new HashMap<>() : local;
         return parts;
     }
 
-    private static Map<String, float[]> read() {
-        try (InputStream in = Minecraft.getInstance().getResourceManager().open(JSON_LOC)) {
+    private static Map<String, float[]> loadFrost() {
+        Map<String, float[]> local = frostParts;
+        if (local != null) return local.isEmpty() ? null : local;
+        local = read(FROST_JSON_LOC);
+        frostParts = local == null ? new HashMap<>() : local;
+        return frostParts;
+    }
+
+    private static Map<String, float[]> read(ResourceLocation loc) {
+        try (InputStream in = Minecraft.getInstance().getResourceManager().open(loc)) {
             JsonObject root = JsonParser.parseString(new String(in.readAllBytes(),
                     java.nio.charset.StandardCharsets.UTF_8)).getAsJsonObject();
             JsonObject json = root.getAsJsonObject("parts");
@@ -109,7 +139,7 @@ public final class AssemblyStageModel {
             LOGGER.debug("组装部件网格已加载: {} 个部件", out.size());
             return out;
         } catch (Exception e) {
-            LOGGER.error("读取组装部件网格失败: {}", JSON_LOC, e);
+            LOGGER.error("读取组装部件网格失败: {}", loc, e);
             return null;
         }
     }

@@ -1,6 +1,7 @@
 package cn.blockforge.generated.slashbladereshslashblad;
 
 import cn.blockforge.generated.slashbladereshslashblad.item.HotBladeItem;
+import cn.blockforge.generated.slashbladereshslashblad.item.HotFailedBladeItem;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
@@ -80,7 +81,11 @@ public final class ForgeEvents {
             BladeData.migrateLegacy(stack);
             if (stack.is(GeneratedMod.HOT_BLADE.get()) && now - BladeData.hotSince(stack) >= HotBladeItem.COOL_TICKS) {
                 inventory.setItem(i, HotBladeItem.coolDown(stack));
-                player.displayClientMessage(Component.literal("刀条自然冷却，现在是可用于制刀的成品刀条。"), true);
+                player.displayClientMessage(Component.literal("刀条自然冷却，现在是成品刀条了。"), true);
+            }
+            if (stack.is(GeneratedMod.HOT_FAILED_BLADE.get())
+                    && now - BladeData.hotSince(stack) >= HotFailedBladeItem.COOL_TICKS) {
+                inventory.setItem(i, HotFailedBladeItem.coolDown(stack));
             }
         }
     }
