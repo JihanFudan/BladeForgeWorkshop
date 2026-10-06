@@ -9,8 +9,8 @@ dependencies {
     compileOnly "mezz.jei:jei-1.21.1-common-api:19.21.0.247"
     compileOnly "mezz.jei:jei-1.21.1-neoforge-api:19.21.0.247"
     // 拔刀剑：重锋 1.21.1（前置模组，只在编译期使用，不打进成品）：
-    // 检视改用它的 ComboState 连招管线注册，需要真实签名。
-    compileOnly files('libs/SlashBladeResharped-2.0.5-1.21.1.jar')
+    // 以 2.0.8 的新增接口为编译基线；项目实际调用的公共接口也已用 2.0.7 通过检查。
+    compileOnly files('libs/SlashBladeResharped-2.0.8-1.21.1.jar')
 }
 // 本次正式发布的版本号，供成品文件名与模组信息共同使用。
 version = release_version

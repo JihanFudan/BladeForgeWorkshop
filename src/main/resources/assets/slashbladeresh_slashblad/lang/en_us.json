@@ -61,5 +61,19 @@
   "tooltip.slashbladeresh_slashblad.blade_blank_assemble": "Hold and right-click: assembles with a tsuba, handle and sheath from your inventory",
   "item.slashbladeresh_slashblad.hot_failed_blade": "Scorched Failed Blade",
   "tooltip.slashbladeresh_slashblad.frost_author": "Author's blade - jihanfudan",
-  "key.slashbladeresh_slashblad.category": "SlashBlade"
+  "key.slashbladeresh_slashblad.category": "SlashBlade",
+  "block.slashbladeresh_slashblad.custom_blade_workbench": "Custom SlashBlade Workbench",
+  "item.slashbladeresh_slashblad.custom_blade": "Nameless Blade",
+  "container.slashbladeresh_slashblad.custom_blade_workbench": "Custom SlashBlade Workbench",
+  "button.slashbladeresh_slashblad.assemble": "Assemble",
+  "part.slashbladeresh_slashblad.blade": "Blade",
+  "part.slashbladeresh_slashblad.guard": "Guard",
+  "part.slashbladeresh_slashblad.sheath": "Sheath",
+  "part.slashbladeresh_slashblad.handle": "Handle",
+  "part.slashbladeresh_slashblad.sa": "SA",
+  "msg.slashbladeresh_slashblad.custom_missing_parts": "Insert one blade, guard, sheath and handle first",
+  "msg.slashbladeresh_slashblad.custom_assembled": "Assembly complete: attack %s, durability %s",
+  "tooltip.slashbladeresh_slashblad.custom_blade_parts": "Combined appearance: blade / guard / sheath / handle",
+  "label.slashbladeresh_slashblad.no_model": "No model available",
+  "label.slashbladeresh_slashblad.part_preview": "Part Preview"
 }

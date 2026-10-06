@@ -10,6 +10,7 @@ public final class SlashBladeBridge {
     private static final Method ACCESS;
     private static final Method SAVE;
     private static final Method LOAD;
+    private static final Method SET_SLASH_ART;
     static {
         try {
             Class<?> access = Class.forName("mods.flammpfeil.slashblade.capability.slashblade.BladeStateAccess");
@@ -17,6 +18,7 @@ public final class SlashBladeBridge {
             ACCESS = access.getMethod("of", ItemStack.class);
             SAVE = state.getMethod("serializeNBT");
             LOAD = state.getMethod("deserializeNBT", CompoundTag.class);
+            SET_SLASH_ART = state.getMethod("setSlashArtsKey", net.minecraft.resources.ResourceLocation.class);
         } catch (ReflectiveOperationException e) {
             throw new IllegalStateException("需要支持 BladeStateAccess 的 1.21.1 版 SlashBlade Resharped", e);
         }
@@ -45,6 +47,11 @@ public final class SlashBladeBridge {
     public static void write(ItemStack stack, CompoundTag tag) {
         try { LOAD.invoke(state(stack), tag); }
         catch (ReflectiveOperationException e) { throw new IllegalStateException("无法写入拔刀剑状态", e); }
+    }
+
+    public static void setSlashArt(ItemStack stack, net.minecraft.resources.ResourceLocation slashArt) {
+        try { SET_SLASH_ART.invoke(state(stack), slashArt); }
+        catch (ReflectiveOperationException e) { throw new IllegalStateException("无法写入拔刀剑 SA", e); }
     }
 
     public static void broadcastMotion(net.minecraft.world.entity.LivingEntity entity,

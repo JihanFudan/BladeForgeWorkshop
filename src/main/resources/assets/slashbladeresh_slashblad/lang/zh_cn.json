@@ -64,5 +64,19 @@
   "msg.slashbladeresh_slashblad.assembly_failed": "前置拔刀剑缺失，材料已退回背包",
   "tooltip.slashbladeresh_slashblad.blade_blank_assemble": "手持右键：备齐刀镡、刀柄、刀鞘即可现场组装",
   "item.slashbladeresh_slashblad.hot_failed_blade": "灼热的失败的刀条",
-  "key.slashbladeresh_slashblad.category": "拔刀剑"
+  "key.slashbladeresh_slashblad.category": "拔刀剑",
+  "block.slashbladeresh_slashblad.custom_blade_workbench": "自定义拔刀剑制作台",
+  "item.slashbladeresh_slashblad.custom_blade": "无名之刃",
+  "container.slashbladeresh_slashblad.custom_blade_workbench": "自定义拔刀剑制作台",
+  "button.slashbladeresh_slashblad.assemble": "组装",
+  "part.slashbladeresh_slashblad.blade": "刀条",
+  "part.slashbladeresh_slashblad.guard": "刀镡",
+  "part.slashbladeresh_slashblad.sheath": "刀鞘",
+  "part.slashbladeresh_slashblad.handle": "刀柄",
+  "part.slashbladeresh_slashblad.sa": "SA",
+  "msg.slashbladeresh_slashblad.custom_missing_parts": "请先放入刀条、刀镡、刀鞘和刀柄各一件",
+  "msg.slashbladeresh_slashblad.custom_assembled": "组装完成：攻击 %s，耐久 %s",
+  "tooltip.slashbladeresh_slashblad.custom_blade_parts": "组合外观：刀条 / 刀镡 / 刀鞘 / 刀柄",
+  "label.slashbladeresh_slashblad.no_model": "无可用模型",
+  "label.slashbladeresh_slashblad.part_preview": "部件预览"
 }

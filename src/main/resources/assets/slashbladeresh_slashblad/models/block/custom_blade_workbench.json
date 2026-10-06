@@ -1,0 +1,19 @@
+{
+  "parent":"minecraft:block/block","ambientocclusion":true,
+  "textures":{"all":"slashbladeresh_slashblad:block/custom_blade_workbench","particle":"slashbladeresh_slashblad:block/custom_blade_workbench"},
+  "elements":[
+    {"name":"cabinet","from":[1,0,1],"to":[15,10,15],"faces":{"north":{"texture":"#all"},"east":{"texture":"#all"},"south":{"texture":"#all"},"west":{"texture":"#all"},"up":{"texture":"#all"},"down":{"texture":"#all"}}},
+    {"name":"top","from":[0,10,0],"to":[16,13,16],"faces":{"north":{"texture":"#all"},"east":{"texture":"#all"},"south":{"texture":"#all"},"west":{"texture":"#all"},"up":{"texture":"#all"},"down":{"texture":"#all"}}},
+    {"name":"rail_left","from":[1,13,3],"to":[3,14,13],"faces":{"north":{"texture":"#all"},"east":{"texture":"#all"},"south":{"texture":"#all"},"west":{"texture":"#all"},"up":{"texture":"#all"}}},
+    {"name":"rail_right","from":[13,13,3],"to":[15,14,13],"faces":{"north":{"texture":"#all"},"east":{"texture":"#all"},"south":{"texture":"#all"},"west":{"texture":"#all"},"up":{"texture":"#all"}}},
+    {"name":"slot_blade","from":[4,13,4],"to":[7,13.7,7],"faces":{"up":{"texture":"#all"}}},
+    {"name":"slot_guard","from":[9,13,4],"to":[12,13.7,7],"faces":{"up":{"texture":"#all"}}},
+    {"name":"slot_sheath","from":[4,13,9],"to":[7,13.7,12],"faces":{"up":{"texture":"#all"}}},
+    {"name":"slot_handle","from":[9,13,9],"to":[12,13.7,12],"faces":{"up":{"texture":"#all"}}},
+    {"name":"corner_nw","from":[0,9.5,0],"to":[2,14,2],"faces":{"north":{"texture":"#all"},"east":{"texture":"#all"},"south":{"texture":"#all"},"west":{"texture":"#all"},"up":{"texture":"#all"}}},
+    {"name":"corner_ne","from":[14,9.5,0],"to":[16,14,2],"faces":{"north":{"texture":"#all"},"east":{"texture":"#all"},"south":{"texture":"#all"},"west":{"texture":"#all"},"up":{"texture":"#all"}}},
+    {"name":"corner_sw","from":[0,9.5,14],"to":[2,14,16],"faces":{"north":{"texture":"#all"},"east":{"texture":"#all"},"south":{"texture":"#all"},"west":{"texture":"#all"},"up":{"texture":"#all"}}},
+    {"name":"corner_se","from":[14,9.5,14],"to":[16,14,16],"faces":{"north":{"texture":"#all"},"east":{"texture":"#all"},"south":{"texture":"#all"},"west":{"texture":"#all"},"up":{"texture":"#all"}}}
+  ],
+  "display":{"gui":{"rotation":[30,225,0],"translation":[0,0,0],"scale":[0.625,0.625,0.625]}}
+}

@@ -154,6 +154,9 @@ def write_mixed_obj(mur, tsu, path, gold_uv):
 
     def is_old_tsuba(group, face):
         """识别并剔除村正原刀镡，避免金色雪花外仍套着村正花纹。"""
+        # 独立 handle 分组必须保留旧版完整网格：拔刀剑本体在部分姿态会单独绘制它。
+        # 自定义制作台若要拆分刀柄与刀镡，由 CustomBladeRenderer 在选件时过滤，
+        # 不能在作者刀源资源里永久删除，否则作者刀本身会失去刀柄。
         if group not in ("blade", "blade_damaged"):
             return False
         points = [mvs[vi - 1] for vi, _ in face]
@@ -166,6 +169,13 @@ def write_mixed_obj(mur, tsu, path, gold_uv):
             return True
         cx = sum(mvs[vi - 1][0] for vi, _ in face) / len(face)
         return cx < -15.0 and not is_old_tsuba(group, face)
+
+    def handle_body(group, face):
+        """村正独立 handle 也含刀根套环；物品栏只保留标准刀柄起点右侧的面。"""
+        if group != "handle":
+            return True
+        cx = sum(mvs[vi - 1][0] for vi, _ in face) / len(face)
+        return cx >= -32.7929
 
     def world_body(group, face):
         """实战模型必须保留初版 blade 分组自带的柄形网格，只替换旧刀镡。"""
@@ -195,9 +205,9 @@ def write_mixed_obj(mur, tsu, path, gold_uv):
                 -0.6393679184 * z + 8.4590103634)
 
     item_blade = [("muramasa", g, f) for g, f in mfaces
-                  if g in ("handle", "blade") and blade_body(g, f)]
+                  if g in ("handle", "blade") and blade_body(g, f) and handle_body(g, f)]
     item_damaged = [("muramasa", g, f) for g, f in mfaces
-                    if g in ("handle", "blade_damaged") and blade_body(g, f)]
+                    if g in ("handle", "blade_damaged") and blade_body(g, f) and handle_body(g, f)]
     item_sheath = [("tsukumo", g, f) for g, f in sheath_faces]
     for source, group, face in item_blade:
         selected.append((source, group, face, "item_blade", item_blade_transform))
@@ -214,26 +224,56 @@ def write_mixed_obj(mur, tsu, path, gold_uv):
 
     out = ["# Frost Blade: own blade + simplified Tsukumo sheath", "o frost"]
     vertices, texcoords, faces = [], [], []
+    vertex_indices = {}
+
+    def vertex_index(point):
+        """按实际坐标复用顶点，避免同一截面因三角面重复计数而伪造弧度。"""
+        key = tuple(round(value, 6) for value in point)
+        if key not in vertex_indices:
+            vertex_indices[key] = len(vertices) + 1
+            vertices.append(point)
+        return vertex_indices[key]
+
+    def append_face(group, corners):
+        remapped = []
+        for point, uv in corners:
+            vi = vertex_index(point)
+            texcoords.append(uv)
+            remapped.append((vi, len(texcoords)))
+        faces.append((group, remapped))
+
     for source, _source_group, face, output_group, transform in selected:
         src_v, src_uv = (mvs, muv) if source == "muramasa" else (tvs, tuv)
-        remapped = []
+        corners = []
         for vi, ti in face:
             point = src_v[vi - 1]
-            vertices.append(transform(point) if transform else point)
             u, v = src_uv[ti - 1]
-            u = u * 0.5 + (0.5 if source == "tsukumo" else 0.0)
-            texcoords.append((u, v))
-            remapped.append(len(vertices))
-        faces.append((output_group, remapped))
+            corners.append((transform(point) if transform else point,
+                            (u * 0.5 + (0.5 if source == "tsukumo" else 0.0), v)))
+        append_face(output_group, corners)
 
     def append_snowflake(group, transform=None):
         for triangle in frost_tsuba_mesh(gold_uv):
-            remapped = []
-            for point, (u, v) in triangle:
-                vertices.append(transform(point) if transform else point)
-                texcoords.append((u * 0.5, v))
-                remapped.append(len(vertices))
-            faces.append((group, remapped))
+            append_face(group, [
+                (transform(point) if transform else point, (u * 0.5, v))
+                for point, (u, v) in triangle
+            ])
+
+    def append_handle_cap():
+        """封住刀柄伸入刀镡一端的六边形截面，防止从侧面看到空腔。"""
+        x = -35.379
+        ring = [(-3.202, -2.266), (-3.202, 2.266), (3.631, 3.567),
+                (9.428, 2.266), (9.428, -2.266), (3.631, -3.567)]
+        center = (x, sum(y for y, _ in ring) / len(ring), 0.0)
+        # 取刀柄贴图中的已有深蓝材质点；封口很小，纯色比拉伸纹理更不显眼。
+        handle_face = next(face for group, face in mfaces if group == "handle")
+        source_uv = muv[handle_face[0][1] - 1]
+        cap_uv = (source_uv[0] * 0.5, source_uv[1])
+        for index, (y0, z0) in enumerate(ring):
+            y1, z1 = ring[(index + 1) % len(ring)]
+            append_face("handle", [((x, y0, z0), cap_uv), ((x, y1, z1), cap_uv), (center, cap_uv)])
+
+    append_handle_cap()
 
     # 世界、损坏状态、无鞘状态和物品栏都使用同一枚寒霜雪花刀镡。
     append_snowflake("blade")
@@ -241,11 +281,14 @@ def write_mixed_obj(mur, tsu, path, gold_uv):
     append_snowflake("item_blade", item_blade_transform)
     append_snowflake("item_damaged", item_blade_transform)
     append_snowflake("item_bladens", item_blade_transform)
+    # 额外保留一份只供自定义制作台精确拆件的独立 guard 分组。
+    # 普通寒霜仍绘制 blade 内的雪花；制作台则优先读取 guard，避免用坐标猜测而漏枝条。
+    append_snowflake("guard")
 
     # 每个命名分组只输出一次。部分 OBJ 加载器遇到重复的同名 g 段时会覆盖前段，
     # 这正会导致最后追加的雪花刀镡把完整刀身替掉。
     group_order = {name: index for index, name in enumerate(
-        ("handle", "blade", "blade_damaged", "blade_fragment", "sheath",
+        ("handle", "blade", "guard", "blade_damaged", "blade_fragment", "sheath",
          "item_blade", "item_damaged", "item_bladens", "item_back"))}
     faces.sort(key=lambda item: group_order[item[0]])
 
@@ -256,7 +299,7 @@ def write_mixed_obj(mur, tsu, path, gold_uv):
         if group != current:
             out.append("g " + group)
             current = group
-        out.append("f " + " ".join(f"{index}/{index}" for index in face))
+        out.append("f " + " ".join(f"{vertex}/{uv}" for vertex, uv in face))
     path.write_text("\n".join(out) + "\n", encoding="utf-8")
 
 
@@ -303,8 +346,8 @@ def recolor_muramasa(base, model):
             lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255.0
             part = reverse.get(mask[x, y], "other")
             if part == "handle":
-                # 修正旧版刀柄的一处棕/金错色：实际柄面统一成深蓝缠柄。
-                dst[x, y] = (int(18 + lum * 42), int(25 + lum * 58), int(70 + lum * 105), a)
+                # 寒霜刀柄统一为深紫色：保留原缠柄明暗和棱线，不把细节涂成纯色块。
+                dst[x, y] = (int(34 + lum * 56), int(10 + lum * 30), int(62 + lum * 112), a)
             elif part == "tsuba":
                 # 寒霜刀镡统一改为金色，同时保留原贴图明暗，避免看成一块扁平黄片。
                 dst[x, y] = (int(126 + lum * 124), int(78 + lum * 136), int(12 + lum * 60), a)

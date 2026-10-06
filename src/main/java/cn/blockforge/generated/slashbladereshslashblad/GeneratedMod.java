@@ -2,10 +2,12 @@ package cn.blockforge.generated.slashbladereshslashblad;
 
 import cn.blockforge.generated.slashbladereshslashblad.block.ForgeAnvilBlock;
 import cn.blockforge.generated.slashbladereshslashblad.block.BladeWorkbenchBlock;
+import cn.blockforge.generated.slashbladereshslashblad.block.CustomBladeWorkbenchBlock;
 import cn.blockforge.generated.slashbladereshslashblad.block.HeatingFurnaceBlock;
 import cn.blockforge.generated.slashbladereshslashblad.block.TsubaWorkbenchBlock;
 import cn.blockforge.generated.slashbladereshslashblad.blockentity.ForgeWorkbenchBlockEntity;
 import cn.blockforge.generated.slashbladereshslashblad.blockentity.BladeWorkbenchBlockEntity;
+import cn.blockforge.generated.slashbladereshslashblad.blockentity.CustomBladeWorkbenchBlockEntity;
 import cn.blockforge.generated.slashbladereshslashblad.blockentity.HeatingFurnaceBlockEntity;
 import cn.blockforge.generated.slashbladereshslashblad.item.FailedBladeItem;
 import cn.blockforge.generated.slashbladereshslashblad.item.ForgingToolItem;
@@ -39,6 +41,7 @@ public final class GeneratedMod {
     public static final DeferredRegister.Items ITEMS = DeferredRegister.createItems(MOD_ID);
     public static final DeferredRegister.Blocks BLOCKS = DeferredRegister.createBlocks(MOD_ID);
     public static final DeferredRegister BLOCK_ENTITY_TYPES = DeferredRegister.create(BuiltInRegistries.BLOCK_ENTITY_TYPE, MOD_ID);
+    public static final DeferredRegister<net.minecraft.world.inventory.MenuType<?>> MENU_TYPES = DeferredRegister.create(BuiltInRegistries.MENU, MOD_ID);
     public static final DeferredRegister<CreativeModeTab> CREATIVE_MODE_TABS = DeferredRegister.create(Registries.CREATIVE_MODE_TAB, MOD_ID);
 
     /* ---------------- 木质刀条 ---------------- */
@@ -104,6 +107,8 @@ public final class GeneratedMod {
     public static final DeferredItem<Item> FORGING_HAMMER = ITEMS.registerItem("forging_hammer", ForgingToolItem::new);
     public static final DeferredItem<Item> TONGS = ITEMS.registerItem("tongs", ForgingToolItem::new);
     public static final DeferredItem<GuideBookItem> GUIDE_BOOK = ITEMS.registerItem("guide_book", GuideBookItem::new);
+    public static final DeferredItem<cn.blockforge.generated.slashbladereshslashblad.item.CustomBladeItem> CUSTOM_BLADE =
+            ITEMS.registerItem("custom_blade", cn.blockforge.generated.slashbladereshslashblad.item.CustomBladeItem::new);
 
     /* ---------------- 方块（noOcclusion：非立方体模型必须关掉方块遮蔽，否则相邻方块面被剔除，地面看起来“变透明”） ---------------- */
     public static final DeferredBlock<Block> TSUBA_WORKBENCH = BLOCKS.registerBlock("tsuba_workbench", TsubaWorkbenchBlock::new,
@@ -114,10 +119,13 @@ public final class GeneratedMod {
             Block.Properties.of().strength(2.5f).noOcclusion());
     public static final DeferredBlock<Block> HEATING_FURNACE = BLOCKS.registerBlock("heating_furnace", HeatingFurnaceBlock::new,
             Block.Properties.of().strength(3.5f).noOcclusion().lightLevel(state -> 12));
+    public static final DeferredBlock<Block> CUSTOM_BLADE_WORKBENCH = BLOCKS.registerBlock("custom_blade_workbench",
+            CustomBladeWorkbenchBlock::new, Block.Properties.of().strength(3.0f).noOcclusion());
     public static final DeferredItem<BlockItem> TSUBA_WORKBENCH_ITEM = ITEMS.registerSimpleBlockItem(TSUBA_WORKBENCH);
     public static final DeferredItem<BlockItem> FORGE_ANVIL_ITEM = ITEMS.registerSimpleBlockItem(FORGE_ANVIL);
     public static final DeferredItem<BlockItem> BLADE_WORKBENCH_ITEM = ITEMS.registerSimpleBlockItem(BLADE_WORKBENCH);
     public static final DeferredItem<BlockItem> HEATING_FURNACE_ITEM = ITEMS.registerSimpleBlockItem(HEATING_FURNACE);
+    public static final DeferredItem<BlockItem> CUSTOM_BLADE_WORKBENCH_ITEM = ITEMS.registerSimpleBlockItem(CUSTOM_BLADE_WORKBENCH);
 
     public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<ForgeWorkbenchBlockEntity>> FORGE_WORKBENCH_ENTITY = BLOCK_ENTITY_TYPES.register(
             "forge_workbench", () -> BlockEntityType.Builder.of(ForgeWorkbenchBlockEntity::create,
@@ -130,6 +138,14 @@ public final class GeneratedMod {
     public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<HeatingFurnaceBlockEntity>> HEATING_FURNACE_ENTITY = BLOCK_ENTITY_TYPES.register(
             "heating_furnace", () -> BlockEntityType.Builder.of(HeatingFurnaceBlockEntity::create,
                     HEATING_FURNACE.get()).build(null));
+
+    public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<CustomBladeWorkbenchBlockEntity>> CUSTOM_BLADE_WORKBENCH_ENTITY = BLOCK_ENTITY_TYPES.register(
+            "custom_blade_workbench", () -> BlockEntityType.Builder.of(CustomBladeWorkbenchBlockEntity::create,
+                    CUSTOM_BLADE_WORKBENCH.get()).build(null));
+
+    public static final DeferredHolder<net.minecraft.world.inventory.MenuType<?>, net.minecraft.world.inventory.MenuType<cn.blockforge.generated.slashbladereshslashblad.menu.CustomBladeWorkbenchMenu>> CUSTOM_BLADE_WORKBENCH_MENU = MENU_TYPES.register(
+            "custom_blade_workbench", () -> net.neoforged.neoforge.common.extensions.IMenuTypeExtension.create(
+                    cn.blockforge.generated.slashbladereshslashblad.menu.CustomBladeWorkbenchMenu::new));
 
     @SuppressWarnings("unchecked")
     private static <T extends Item> DeferredItem<T> item(String id) {
@@ -167,6 +183,7 @@ public final class GeneratedMod {
                     .displayItems((parameters, output) -> {
                         output.accept(TSUBA_WORKBENCH_ITEM.get());
                         output.accept(BLADE_WORKBENCH_ITEM.get());
+                        output.accept(CUSTOM_BLADE_WORKBENCH_ITEM.get());
                         output.accept(FORGE_ANVIL_ITEM.get());
                         output.accept(HEATING_FURNACE_ITEM.get());
                         output.accept(CUTTING_KNIFE.get());
@@ -216,6 +233,7 @@ public final class GeneratedMod {
         ITEMS.register(modBus);
         BLOCKS.register(modBus);
         BLOCK_ENTITY_TYPES.register(modBus);
+        MENU_TYPES.register(modBus);
         CREATIVE_MODE_TABS.register(modBus);
         // 检视沿用网站版机制：向重锋的连招注册表登记带拔刀的 inspect_a
         // 一个 ComboState，并注册那五个原版同款音效；播放全交给重锋自己做。

@@ -539,4 +539,63 @@ public final class BladeData {
         saveExternalState(stack, state);
         markBlade(stack, damageBonus(stack) + attack, durabilityBonus(stack) + durability, guard);
     }
+
+    private static final String CUSTOM_PARTS = "CustomBladeParts";
+    private static final String[] CUSTOM_PART_NAMES = {"Blade", "Guard", "Sheath", "Handle"};
+
+    /** 写入自定义刀的四个模型来源、所选 SA，并设置服务端真正使用的攻击与耐久。 */
+    public static void configureCustomBlade(ItemStack stack, int attack, int durability, BladePartCatalog.Entry[] parts,
+                                            ResourceLocation slashArt) {
+        CompoundTag state = externalState(stack);
+        state.putFloat(BASE_ATTACK, Math.max(1, attack));
+        state.putInt(MAX_DAMAGE, Math.max(1, durability));
+        state.putInt(CURRENT_DAMAGE, 0);
+        state.putBoolean("isBroken", false);
+        state.putBoolean("isSealed", false);
+        if (parts.length > 0 && parts[0] != null) {
+            state.putString("model", parts[0].model().toString());
+            state.putString("texture", parts[0].texture().toString());
+        }
+        saveExternalState(stack, state);
+        SlashBladeBridge.setSlashArt(stack, slashArt == null ? SlashArtCatalog.DEFAULT : slashArt);
+        CompoundTag data = data(stack);
+        CompoundTag custom = new CompoundTag();
+        for (int i = 0; i < Math.min(4, parts.length); i++) {
+            if (parts[i] == null) continue;
+            CompoundTag part = new CompoundTag();
+            part.putString("Definition", parts[i].definition().toString());
+            part.putString("Model", parts[i].model().toString());
+            part.putString("Texture", parts[i].texture().toString());
+            part.putString("TranslationKey", parts[i].translationKey());
+            custom.put(CUSTOM_PART_NAMES[i], part);
+        }
+        data.put(CUSTOM_PARTS, custom);
+        CustomData.set(DataComponents.CUSTOM_DATA, stack, data);
+        markBlade(stack, Math.max(0, attack - 2), Math.max(0, durability - 35), "custom");
+    }
+
+    public static ResourceLocation customPartResource(ItemStack stack, int part, String key, ResourceLocation fallback) {
+        if (part < 0 || part >= CUSTOM_PART_NAMES.length) return fallback;
+        CompoundTag custom = data(stack).getCompound(CUSTOM_PARTS).getCompound(CUSTOM_PART_NAMES[part]);
+        ResourceLocation value = ResourceLocation.tryParse(custom.getString(key));
+        return value == null ? fallback : value;
+    }
+
+    public static String customPartSummary(ItemStack stack) {
+        CompoundTag custom = data(stack).getCompound(CUSTOM_PARTS);
+        StringBuilder text = new StringBuilder();
+        for (int i = 0; i < CUSTOM_PART_NAMES.length; i++) {
+            CompoundTag part = custom.getCompound(CUSTOM_PART_NAMES[i]);
+            ResourceLocation id = ResourceLocation.tryParse(part.getString("Definition"));
+            String key = part.getString("TranslationKey");
+            if (i > 0) text.append(" / ");
+            if (!key.isBlank()) {
+                String translated = net.minecraft.network.chat.Component.translatable(key).getString();
+                text.append(translated.equals(key) && id != null ? id.getPath() : translated);
+            } else {
+                text.append(id == null ? "?" : id.getPath());
+            }
+        }
+        return text.toString();
+    }
 }
